@@ -32,7 +32,7 @@ def reprogramarTurno():
         if(t[0] == dni):
             t[1] = fecha
             t[2] = hora
-            print("Turno reprogramado")
+            print("Turno reprogramado") #aca falta chequear tambien si el nuevo horario ya estaba ocupado para no pisar turnos
             return #salir del bucle y no seguir buscando
     print("No se encontró un turno para el DNI del paciente ingresado")
 
