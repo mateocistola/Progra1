@@ -15,15 +15,17 @@ while eleccion != 5:
     " 4 para listar los turnos de un paciente \n"
     " 5 para salir \n"))
 
-    if eleccion == 1:
-        Turnero.darTurno()
-    elif eleccion == 2:
-        Turnero.reprogramarTurno()
-    elif eleccion == 3:
-        Turnero.cancelarTurno()
-    elif eleccion == 4:
-        Turnero.listarTurnos()
-    elif eleccion == 5:
-        print("saliendo")
-    else:
-        print("Opcion invalidad.")
+    match eleccion:
+        case 1 :
+            Turnero.darTurno()
+        case 2:
+            Turnero.reprogramarTurno()
+        case 3:
+            Turnero.cancelarTurno()
+        case 4:
+            Turnero.listarTurnos()
+        case 5:
+            print("Saliendo...")
+        case _:
+            print("Opción inválida.")
+
