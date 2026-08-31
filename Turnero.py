@@ -7,10 +7,18 @@ profesionales = [
 turnos = [
 
 ]
-
+#Para saber qué médicos están disponibles
+def mostrarProfesionales():
+    print("Los profesionales disponibles son: ")
+    for p in profesionales:
+        print("ID: " + p[0] + "Nombre: " + p[1] + "Especialidad: " + p[2])
+        
 def darTurno():
-    ok= False
-    esp = input("Ingrese ID Especialidad \n")
+    #mostrarProfesionales()
+
+    #idProfesional = input("Ingrese ID profesional: ")
+    ok= False #Esto lo quitaba porque no hace nada
+    esp = input("Ingrese ID Especialidad \n") #Esto lo cambiaría en lugar de especialidad a por id del profesional (médico) (Qué es esp??)
     print("Ingrese DNI del paciente")
     dni = input()
     print("Ingrese fecha xx/xx/xx")
@@ -19,7 +27,7 @@ def darTurno():
     hora = input()
     for p in profesionales: # chequeo si existe el id del profesional ingresado en la lista de profesionales
         if(p[0] == esp):
-            turnos.append([dni, fecha, hora]) # por ahora la lista de turnos es global para todos los profesionales
+            turnos.append([dni, fecha, hora]) # por ahora la lista de turnos es global para todos los profesionales #Metería el idProfesional aquí también
             print("Turno dado correctamente") # faltaria chequear antes de dar un turno si no existia un turno ya en ese horario
             return
     print("no se encontró un profesional con id de especialidad ingresada")
@@ -49,3 +57,4 @@ def cancelarTurno():
 def listarTurnos():
     for t in turnos:
         print("Paciente DNI: " + t[0] + " Fecha: " + t[1] + " Hora: " + t[2])
+
