@@ -1,97 +1,55 @@
-import datetime
-
-profesionales = [
-    ["1", "Perez, Carolina", "Cardiologia"],
-    ["2", "Gomez, Alejandra", "Clinica Medica"],
-    ["3", "Lopez, Eduardo", "Traumatologia"]
-]
-
-turnos = [
-
-]
+from datetime import datetime
 
 
-# Para saber qué médicos están disponibles
-def mostrarProfesionales():
-    print("Los profesionales disponibles son: ")
-    for p in profesionales:
-        print("ID: " + p[0] + "\n Nombre: " + p[1] + "\n Especialidad: " + p[2])
+
+def dias_de_semana():
+    for d in range(len(sem)):# dias_de_semana 
+        print(sem[d], end = ' 	')
+    print('')
+
+''' def elijo_turn():
+    print()
+    print()
+    diaT=int(input('Ingrese el Numero del dia que desea el Turno (ejemplo 12 = lunes): '))
+    print()
+    mesT=int(input('Ingrese el Numero del mes que desea el Turno (ejemplo 8 = agosto ): '))
+    return diaT,mesT,ahora.year
+'''
+dias = ["lunes","martes","miércoles","jueves","viernes","sábado","domingo"]
+sem = ['Lu','Ma','Mi','Ju','Vi','Sa','Do']
+meses = [" ","Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]
+
+ahora = datetime.now()
+fecha = datetime(ahora.year, ahora.month, ahora.day)
+'''print(dias[fecha.weekday()]) # imprime el dia de la semana '''
+
+def mostrar_meses ():
+    print()
+ #mostramos el mes con dias disponibles 
+    print('	MES DE ',meses [ahora.month],'(',ahora.month ,')')
+
+# imprimir mes actual
+    dias_de_semana()
+
+    for i in range(ahora.day+1):
+        if i % 7 == 0 and i != 0:
+            print(i )
+        elif i !=0:
+            print(i, end = '	 '  )       
+    print()
+    print()
+
+# imprimir proximo mes 
+    print('	MES DE ',meses [ahora.month + 1],'(',ahora.month + 1,')')
+
+    dias_de_semana()
+    for x in range(ahora.day):
+        if x % 7 == 0 and x != 0:
+            print(x )
+        elif x !=0:
+            print(x, end = '	 '  )
+    print()
 
 
-def darTurno():
-    mostrarProfesionales()
+    
 
-    idProfesional = input("Ingrese ID profesional: ")
-
-    dni = input("Ingrese DNI del paciente")
-    while not (len(dni) == 7 or len(dni) == 8) or not dni.isdigit():
-        print("DNI no valido")
-        dni = input("Ingrese nuevamente el DNI del paciente")
-
-    while True:
-        try:
-            fecha = datetime.datetime.strptime(input("Ingrese la fecha xx/xx/xxxx"), "%d/%m/%Y")
-            break
-        except ValueError:
-            print("Fecha incorrecta, ingrese la fecha de nuevo")
-
-    while True:
-        try:
-            hora = datetime.datetime.strptime(input("Ingrese la hora H:M"), "%H:%M").time()
-            break
-        except ValueError:
-            print("Hora incorrecta, ingrese la hora de nuevo")
-    for p in profesionales:  # chequeo si existe el id del profesional ingresado en la lista de profesionales
-        if (p[0] == idProfesional):
-            turnos.append([dni, idProfesional, fecha,
-                           hora])  # por ahora la lista de turnos es global para todos los profesionales #Metería el idProfesional aquí también
-            print(
-                "Turno dado correctamente")  # faltaria chequear antes de dar un turno si no existia un turno ya en ese horario
-            return
-    print("no se encontró un profesional con id de especialidad ingresada")
-
-
-def reprogramarTurno():
-    dni = input("Ingrese DNI del paciente")
-    while not (len(dni) == 7 or len(dni) == 8) or not dni.isdigit():
-        print("DNI no valido")
-        dni = input("Ingrese nuevamente el DNI del paciente")
-    while True:
-        try:
-            fecha = datetime.datetime.strptime(input("Ingrese la fecha"), "%d/%m/%Y")
-            break
-        except ValueError:
-            print("Fecha incorrecta, ingrese la fecha de nuevo")
-    while True:
-        try:
-            hora = datetime.datetime.strptime(input("Ingrese nueva hora"), "%H:%M").time()
-            break
-        except ValueError:
-            print("Hora incorrecta, ingrese la hora de nuevo")
-
-    for t in turnos:
-        if (t[0] == dni):
-            t[2] = fecha
-            t[3] = hora
-            print(
-                "Turno reprogramado")  # aca falta chequear tambien si el nuevo horario ya estaba ocupado para no pisar turnos
-            return  # salir del bucle y no seguir buscando
-    print("No se encontró un turno para el DNI del paciente ingresado")
-
-
-def cancelarTurno():
-    dni = input("Ingrese DNI del paciente")
-    while not (len(dni) == 7 or len(dni) == 8) or not dni.isdigit():
-        print("DNI no valido")
-        dni = input("Ingrese nuevamente el DNI del paciente")
-    for t in turnos:
-        if (t[0] == dni):
-            turnos.remove(t)
-            print("Turno cancelado")
-            return  # sale del bucle y no sigue buscando al pedo
-    print("No se encontró un turno para el paciente ingresado")
-
-
-def listarTurnos():
-    for t in turnos:
-        print("Paciente DNI: " + t[0] + "Profesional ID: " + t[1] + "Fecha: " + t[2].strftime("%d/%m/%Y") + " Hora: " + t[3].strftime("%H:%M"))
