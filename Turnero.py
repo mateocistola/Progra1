@@ -101,8 +101,14 @@ def darTurno():
                 horarioOcupado = True
 
         if horarioOcupado:
-            print("El profesional ya tiene un turno en esa fecha y hora \n")
-
+            print("El profesional ya tiene un turno en esa fecha y hora, los horarios que tiene ocupados son: \n")
+            for turno in turnos:
+                if (
+                    turno[1] == matricula
+                    and turno[2] == fecha
+                ):
+                    print(" - " + turno[3])
+            print("El rango horario del profesional es de: " + Profesionales.getHorarioProfesional(matricula) + ", ingrese un nuevo horario dentro del rango. \n")
         else:
             turnos.append([
                 dni,

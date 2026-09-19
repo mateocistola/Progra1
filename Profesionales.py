@@ -3,7 +3,7 @@ import Turnero
 profesionales = [
     ["1", "Perez, Carolina", "Cardiologia", 9, 17],
     ["2", "Gomez, Alejandra", "Clinica Medica", 8, 16],
-    ["3", "Lopez, Eduardo", "Traumatologia", 10, 18]
+    ["3", "Lopez, Eduardo", "Traumatologia", 10, 18] #incluimos profesionales de prueba
 ]
 
 #para sacar el horario del profesional que se esta sacando turno, chequeamos con el id y evitamos reescribir.
@@ -148,7 +148,7 @@ def agregarProfesionales():
 def quitarProfesionales():
     mostrarProfesionales()
 
-    id = input("Ingrese ID del profesional a quitar: ")
+    id = input("Ingrese matricula o ID del profesional a quitar: ")
 
     if tieneTurnos(id):
         print("No se puede eliminar el profesional porque tiene turnos asignados, cancele primero los turnos.")
@@ -160,5 +160,5 @@ def quitarProfesionales():
             print("eliminado")
             return
 
-    print("No se encontró un profesional con el ID ingresado")
+    print("No se encontró un profesional con la matricula / ID ingresado.")
     return

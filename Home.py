@@ -1,8 +1,3 @@
-#Sistema de Reserva de Turnos Médicos
-#Implementar un sistema que gestione la reserva de turnos médicos para los profesionales de las distintas especialidades que atiende un centro de salud, utilizando
-#matrices, listas y diccionarios para mantener la información, almacenándola en archivos para permitir su posterior recuperación. Aplicar recursividad para realizar las
-#búsquedas de una manera ágil y flexible.
-
 import Turnero, Profesionales;
 eleccion = 0
 print("Bienvenido -- Sistema de Reserva de Turnos Médicos")
