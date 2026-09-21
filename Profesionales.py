@@ -11,7 +11,7 @@ def getHorarioProfesional(id):
     for profesional in profesionales:
         if profesional[0] == id:
             return str(profesional[3]) + " a " + str(profesional[4]) + " hs"
-    return None, None
+    return None
 
 #para chequear si el profesional tiene turnos asignados, es util por ejemplo al momento de eliminar un profesional, primero chequear si tiene turnos
 def tieneTurnos(id):
