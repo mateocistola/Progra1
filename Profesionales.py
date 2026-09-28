@@ -1,43 +1,38 @@
-import Turnero
-
-profesionales = [
-    ["1", "Perez, Carolina", "Cardiologia", 9, 17],
-    ["2", "Gomez, Alejandra", "Clinica Medica", 8, 16],
-    ["3", "Lopez, Eduardo", "Traumatologia", 10, 18] #incluimos profesionales de prueba
-]
 
 #para sacar el horario del profesional que se esta sacando turno, chequeamos con el id y evitamos reescribir.
-def getHorarioProfesional(id):
+def getHorarioProfesional(profesionales, legajo):
+    horario = None
+
     for profesional in profesionales:
-        if profesional[0] == id:
-            return str(profesional[3]) + " a " + str(profesional[4]) + " hs"
-    return None
+        if profesional[0] == legajo:
+            horario = str(profesional[3]) + " a " + str(profesional[4]) + " hs"
+    return horario
 
 #para chequear si el profesional tiene turnos asignados, es util por ejemplo al momento de eliminar un profesional, primero chequear si tiene turnos
-def tieneTurnos(id):
-    if not Turnero.turnos:
-        return False
-    for turno in Turnero.turnos:
-        if turno[1] == id:
-            return True
-    return False
+def tieneTurnos(turnos, legajo):
+    tieneTurnosAsignados = False
 
-def mostrarProfesionales():
+    for turno in turnos:
+        if turno[1] == legajo:
+            tieneTurnosAsignados = True
+    return tieneTurnosAsignados
+
+def mostrarProfesionales(profesionales):
     print("Los profesionales disponibles son: ")
 
     for profesional in profesionales:
         print(
-            "Matricula: " + profesional[0] +
+            "Legajo: " + profesional[0] +
             ", Nombre: " + profesional[1] +
             ", Especialidad: " + profesional[2] +
-            ", Horario: " + getHorarioProfesional(profesional[0])
+            ", Horario: " + getHorarioProfesional(profesionales, profesional[0])
         )
 
-    return
 
 
-def menu():
-    eleccion = 0
+
+def menu(profesionales, turnos):
+
 
     eleccion = int(input(
         "Gestión de profesionales, ingrese: \n"
@@ -45,120 +40,137 @@ def menu():
         "2 para quitar un profesional. \n"
         "3 para modificar un profesional. \n"
         "4 para modificar el horario de un profesional. \n"
+        "5 para salir. \n"
     ))
 
     match eleccion:
         case 1:
-            agregarProfesionales()
+            agregarProfesionales(profesionales)
         case 2:
-            quitarProfesionales()
+            quitarProfesionales(profesionales, turnos)
         case 3:
-            editarProfesionales()
+            editarProfesionales(profesionales)
         case 4:
-            modificarHorario()
+            modificarHorario(profesionales)
+        case 5:
+            print("Volvemos al menú principal")
         case _:
             print("Opción incorrecta.")
 
-    return
+   
 
 
-def modificarHorario():
-    id = input("Ingrese ID del profesional: ")
+def modificarHorario(profesionales):
+    legajo = input("Ingrese el legajo del profesional: ")
 
-    for profesional in profesionales:
-        if profesional[0] == id:
-            print(
-                "Horario actual: " +
-                getHorarioProfesional(profesional[0])
-            )
-
-            hInicio = input("Ingrese nuevo horario de comienzo de atencion: ")
-            hFin = input("Ingrese nuevo horario de fin de atencion: ")
-
-            profesional[3] = hInicio
-            profesional[4] = hFin
-
-            print("Horario modificado")
-            return
-
-    print("No se encontró un profesional con la matricula o ID ingresado")
-    return
-
-
-def editarProfesionales():
-    mostrarProfesionales()
-
-    id = input("Ingrese matricula o ID del profesional para editar: ")
+    profesionalEncontrado = []
 
     for profesional in profesionales:
-        if profesional[0] == id:
-            print("Nombre actual: " + profesional[1])
+        if profesional[0] == legajo:
+            profesionalEncontrado = profesional
 
-            nombre = input(
-                "Ingrese nuevo nombre: o  enter para mantener el nombre actual: "
-            )
+    if profesionalEncontrado:
+        print(
+              "Horario actual: " +
+              getHorarioProfesional(profesionales, legajo)
+        )
 
-            if nombre == "":
-                nombre = profesional[1]
+        horaInicio = input("Ingrese nuevo horario de comienzo de atencion: ")
+        horaFin = input("Ingrese nuevo horario de fin de atencion: ")
 
-            print("Especialidad actual: " + profesional[2])
+        profesionalEncontrado[3] = horaInicio
+        profesionalEncontrado[4] = horaFin
 
-            especialidad = input(
+        print("Horario modificado")
+    else:
+        print("No se encontró un profesional con el legajo ingresado")
+
+
+
+def editarProfesionales(profesionales):
+    mostrarProfesionales(profesionales)
+
+    legajo = input("Ingrese legajo del profesional para editar: ")
+
+    profesionalEncontrado = []
+
+    for profesional in profesionales:
+        if profesional[0] == legajo:
+            profesionalEncontrado = profesional
+
+    if profesionalEncontrado:
+       print("Nombre actual: " + profesionalEncontrado[1])
+
+       nombre = input(
+            "Ingrese nuevo nombre: o  enter para mantener el nombre actual: "
+       )
+
+       if nombre == "":
+            nombre = profesionalEncontrado[1]
+
+       print("Especialidad actual: " + profesionalEncontrado[2])
+
+       especialidad = input(
                 "Ingrese nueva especialidad: o bien presione enter "
                 "para mantener la especialidad actual: "
-            )
+       )
 
-            if especialidad == "":
-                especialidad = profesional[2]
+       if especialidad == "":
+            especialidad = profesionalEncontrado[2]
 
-            profesional[1] = nombre
-            profesional[2] = especialidad
+       profesionalEncontrado[1] = nombre
+       profesionalEncontrado[2] = especialidad
 
-            print("Profesional  modificado")
-            return
+       print("Profesional  modificado")
+    else:
 
-    print("No se encontró un profesional con la matricula o id ingresado")
-    return
+       print("No se encontró un profesional con el legajo ingresado")
 
 
-def agregarProfesionales():
-    mostrarProfesionales()
 
-    id = input("Ingrese matricula/id del profesional para agregar: ")
+def agregarProfesionales(profesionales):
+    mostrarProfesionales(profesionales)
+
+    legajo = input("Ingrese legajo del profesional para agregar: ")
     nombre = input("Ingrese nombre del profesional: ")
     especialidad = input("Ingrese especialidad del profesional: ")
-    hInicio = input(
+    horaInicio = input(
         "Ingrese horario de comienzo de atencion: "
     )
-    hFin = input(
+    horaFin = input(
         "Ingrese horario de fin de atencion: "
     )
 
     profesionales.append([
-        id,
+        legajo,
         nombre,
         especialidad,
-        hInicio,
-        hFin
+        horaInicio,
+        horaFin
     ])
 
-    return
+    print("Profesional agregado correctamente")
 
 
-def quitarProfesionales():
-    mostrarProfesionales()
+def quitarProfesionales(profesionales, turnos):
+    mostrarProfesionales(profesionales)
 
-    id = input("Ingrese matricula o ID del profesional a quitar: ")
+    legajo = input("Ingrese el legajo del profesional a quitar: ")
 
-    if tieneTurnos(id):
+    if tieneTurnos(turnos, legajo):
         print("No se puede eliminar el profesional porque tiene turnos asignados, cancele primero los turnos.")
-        return
 
-    for p in profesionales:
-        if p[0] == id:
-            profesionales.remove(p)
-            print("eliminado")
-            return
+    else:
+        profesionalesEliminar = []
 
-    print("No se encontró un profesional con la matricula / ID ingresado.")
-    return
+        for profesional in profesionales:
+            if profesional[0] == legajo:
+                profesionalesEliminar = profesional
+
+        if profesionalesEliminar:
+            profesionales.remove(profesionalesEliminar)
+            print("Profesional eliminado")
+        else:
+
+            print("No se encontró un profesional con el legajo ingresado.")
+

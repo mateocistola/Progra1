@@ -1,8 +1,6 @@
+from datetime import datetime
 import Profesionales
-
-
-turnos = []
-
+import Pacientes
 
 def validarHora(hora):
     partes = hora.split(":")
@@ -57,44 +55,79 @@ def validarFecha(fecha):
 
     return fechaValida
 
+def validarFechaHoraFutura(fecha, hora):
+    partesFecha = fecha.split("/")
+    partesHora = hora.split(":")
 
-def darTurno():
-    print("Seleccione un profesional...")
-    Profesionales.mostrarProfesionales()
+    dia = int(partesFecha[0])
+    mes = int(partesFecha[1])
+    año = int(partesFecha[2])
+    horas = int(partesHora[0])
+    minutos = int(partesHora[1])
 
-    matricula = input("Ingrese matricula o id del profesional: \n")
+    fechaHoraTurno = datetime(año,mes,dia,horas, minutos)
+    fechaHoraActual = datetime.now()
 
-    profesionalesEncontrados = False
+    fechaHoraValida = False
 
-    for profesional in Profesionales.profesionales:
-        if profesional[0] == matricula:
-            profesionalesEncontrados = True
+    if fechaHoraTurno > fechaHoraActual:
+        fechaHoraValida = True
+    return fechaHoraValida
 
-    if profesionalesEncontrados:
-        dni = input("Ingrese DNI del paciente \n")
+def ingresarFechaHora():
+    fechaHoraValida = False
+    fecha = ""
+    hora = ""
 
-        while not (len(dni) == 7 or len(dni) == 8) or not dni.isdigit():
-            print("DNI no válido")
-            dni = input("Ingrese nuevamente el DNI del paciente \n")
-
+    while not fechaHoraValida:
         fecha = input("Ingrese la fecha con formato día/mes/año: \n")
 
         while not validarFecha(fecha):
             print("Fecha incorrecta")
             fecha = input("Ingrese de nuevo la fecha: \n")
 
-        hora = input("Ingrese la hora: \n")
+        hora = input("Ingrese la hora con formato HH:MM: \n")
 
         while not validarHora(hora):
-            print("Hora incorrecta, el rango horario es de:")
-            print(Profesionales.getHorarioProfesional(matricula))
+            print("Hora incorrecta")
             hora = input("Ingrese nuevamente la hora: \n")
+
+        if validarFechaHoraFutura(fecha, hora):
+            fechaHoraValida = True
+        else:
+            print("No se puede asignar un turno en una fecha u hora pasada")
+
+    return fecha, hora
+
+def darTurno(profesionales, pacientes, turnos):
+    print("Seleccione un profesional...")
+    Profesionales.mostrarProfesionales(profesionales)
+
+    legajo = input("Ingrese legajo del profesional: \n")
+
+    profesionalesEncontrados = False
+
+    for profesional in profesionales:
+        if profesional[0] == legajo:
+            profesionalesEncontrados = True
+
+    if profesionalesEncontrados:
+        legajoPaciente = input("Ingrese el legajo del paciente: ")
+
+        pacienteEncontrado = Pacientes.buscarPacientePorLegajo(pacientes, legajoPaciente)
+
+        while pacienteEncontrado is None:
+            print("No existe un paciente registrado con ese legajo")
+            legajoPaciente = input("Ingrese nuevamente el legajo del paciente: ")
+
+            pacienteEncontrado = Pacientes.buscarPacientePorLegajo(pacientes, legajoPaciente)
+        fecha, hora = ingresarFechaHora()
 
         horarioOcupado = False
 
         for turno in turnos:
             if (
-                turno[1] == matricula
+                turno[1] == legajo
                 and turno[2] == fecha
                 and turno[3] == hora
             ):
@@ -104,15 +137,15 @@ def darTurno():
             print("El profesional ya tiene un turno en esa fecha y hora, los horarios que tiene ocupados son: \n")
             for turno in turnos:
                 if (
-                    turno[1] == matricula
+                    turno[1] == legajo
                     and turno[2] == fecha
                 ):
                     print(" - " + turno[3])
-            print("El rango horario del profesional es de: " + Profesionales.getHorarioProfesional(matricula) + ", ingrese un nuevo horario dentro del rango. \n")
+            print("El rango horario del profesional es de: " + Profesionales.getHorarioProfesional(profesionales, legajo) + ", ingrese un nuevo horario dentro del rango. \n")
         else:
             turnos.append([
-                dni,
-                matricula,
+                legajoPaciente,
+                legajo,
                 fecha,
                 hora
             ])
@@ -120,35 +153,31 @@ def darTurno():
             print("Turno dado correctamente \n")
 
     else:
-        print("No se ha encontrado a ningún profesional con la matricula o ID ingresado \n")
+        print("No se ha encontrado a ningún profesional con el legajo ingresado \n")
 
 
-def reprogramarTurno():
+def reprogramarTurno(turnos):
     if not turnos: #si no hay turnos no tiene sentido seguir con la funcion, esto se replica en todos los casos que sea necesario
         print("No hay turnos registrados en el sistema. \n")
         return
     
-    dni = input("Ingrese DNI del paciente \n")
-
-    while not (len(dni) == 7 or len(dni) == 8) or not dni.isdigit():
-        print("DNI no valido")
-        dni = input("Ingrese nuevamente el DNI del paciente \n ")
+    legajoPaciente = input("Ingrese el legajo del paciente: ")
 
     turnosPaciente = []
 
     for turno in turnos:
-        if turno[0] == dni:
+        if turno[0] == legajoPaciente:
             turnosPaciente.append(turno)
 
     if not turnosPaciente:
-        print("No hay turnos asignados para este DNI: " + dni + "\n")
+        print("No hay turnos asignados para el legajo: " + legajoPaciente + "\n")
 
     else:
         print("Estos son los turnos del paciente \n")
 
         for i in range(len(turnosPaciente)):
             print("Turno", i + 1)
-            print("Profesional ID: " + turnosPaciente[i][1])
+            print("Legajo del profesional: " + turnosPaciente[i][1])
             print("Fecha: " + turnosPaciente[i][2])
             print("Hora: " + turnosPaciente[i][3])
             print()
@@ -170,18 +199,7 @@ def reprogramarTurno():
 
         turnoReprogramar = turnosPaciente[opcion - 1]
 
-        fecha = input("Ingrese la nueva fecha: \n")
-
-        while not validarFecha(fecha):
-            print("Fecha incorrecta")
-            fecha = input("Ingrese de nuevo la fecha: \n")
-
-        hora = input("Ingrese la nueva hora: \n")
-
-        while not validarHora(hora):
-            print("Hora incorrecta")
-            hora = input("Ingrese nuevamente la hora: \n")
-
+        fecha, hora = ingresarFechaHora()
         horarioOcupado = False
 
         for turno in turnos:
@@ -205,44 +223,59 @@ def reprogramarTurno():
             print("Turno reprogramado correctamente \n")
 
 
-def cancelarTurno():
+def cancelarTurno(turnos):
     if not turnos:
         print("No hay turnos registrados en el sistema. \n")
         return
     
-    dni = input("Ingrese DNI del paciente \n")
-
-    while not (len(dni) == 7 or len(dni) == 8) or not dni.isdigit():
-        print("DNI no valido")
-        dni = input("Ingrese nuevamente el DNI del paciente \n ")
+    legajoPaciente = input("Ingrese el legajo del paciente: ")
     
-    turnoCancelar = []
+    turnosPaciente = []
 
-    print("Estos son los turnos del paciente \n")
 
     for turno in turnos:
-        if turno[0] == dni:
-            turnoCancelar.append(turno)
+        if turno[0] == legajoPaciente:
+            turnosPaciente.append(turno)
 
-    for turno in range(len(turnoCancelar)):
-        print("Turno", turno + 1)
-        print("Profesional ID: " + turnoCancelar[turno][1])
-        print("Fecha: " + turnoCancelar[turno][2])
-        print("Hora: " + turnoCancelar[turno][3])
-        print()
-    opcion = int(input("Ingrese el número del turno que desea cancelar: \n"))
-    if 1 <= opcion <= len(turnoCancelar):
-        turnos.remove(turnoCancelar[opcion - 1])
-        print("Turno cancelado correctamente \n")
+    if not turnosPaciente:
+        print("No hay turnos registrados en el sistema para el legajo. \n" + legajoPaciente)
+    else:
+        print("Estos son los turnos del paciente \n")
 
-def listarTodosLosTurnos():
+        for posicion in range(len(turnosPaciente)):
+            print("Turno", posicion + 1)
+            print("Legajo del profesional: " + turnosPaciente[posicion][1])
+            print("Fecha: " + turnosPaciente[posicion][2])
+            print("Hora: " + turnosPaciente[posicion][3])
+            print()
+
+        opcionesValidas = []
+
+        for posicion in range(1, len(turnosPaciente) + 1):
+            opcionesValidas.append(str(posicion))
+
+        opcion = input("Ingrese el número del turno que desea cancelar: ")
+
+        while opcion not in opcionesValidas:
+            print("Opcion incorrecta")
+            opcion = input("Seleccione nuevamente el turno: \n ")
+
+        opcion = int(opcion)
+
+        turnoCancelar = turnosPaciente[opcion - 1]
+        turnos.remove(turnoCancelar)
+
+        print("Turno cancelado correctamente")
+
+def listarTodosLosTurnos(turnos):
     if not turnos:
         print("No hay turnos registrados en el sistema. \n")
     else:
         print("Estos son todos los turnos en el sistema \n")
+
         for turno in turnos:
-                print("Paciente DNI: " + turno[0])
-                print("Profesional ID: " + turno[1])
-                print("Fecha: " + turno[2])
-                print("Hora: " + turno[3])
-                print()
+            print("Legajo del paciente: " + turno[0])
+            print("Legajo del profesional: " + turno[1])
+            print("Fecha: " + turno[2])
+            print("Hora: " + turno[3])
+            print()
