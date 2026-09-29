@@ -1,3 +1,5 @@
+
+#Comprobamos que el dni tenga siete u ocho dígitos
 def validarDni(dni):
     dniValido = False
 
@@ -6,11 +8,13 @@ def validarDni(dni):
 
     return dniValido
 
+#Buscamos un paciente utilizando su legajo como clave del diccionario
 def buscarPacientePorLegajo(pacientes, legajo):
     pacienteEncontrado = pacientes.get(legajo)
 
     return pacienteEncontrado
 
+#Comprobamos que el dni no pertenezca a otro paciente
 def dniRegistrado(pacientes, dni):
     registrado = False
 
@@ -20,6 +24,7 @@ def dniRegistrado(pacientes, dni):
 
     return registrado
 
+#Registramos un paciente si su legajo y su dni no están repetidos
 def registrarPaciente(pacientes):
     legajo = input("Ingrese el legajo del paciente: ")
 
@@ -49,6 +54,7 @@ def registrarPaciente(pacientes):
 
         print("Paciente registrado correctamente")
 
+#Mostramos todos los pacientes registrados
 def listarPacientes(pacientes):
     if not pacientes:
         print("No hay pacientes registrados")
@@ -62,6 +68,8 @@ def listarPacientes(pacientes):
             print("Apellido: " + pacientes[legajo]["apellido"])
             print()
 
+
+#Busca y muestra los datos de un paciente por su legajo
 def mostrarPacientePorLegajo(pacientes):
     legajo = input("Ingrese el legajo del paciente: ")
 
@@ -75,6 +83,7 @@ def mostrarPacientePorLegajo(pacientes):
         print("Nombre: " + pacienteEncontrado["nombre"])
         print("Apellido: " + pacienteEncontrado["apellido"])
 
+#Mostramos las opciones disponibles para gestionar pacientes
 def menu(pacientes):
     eleccion = 0
 

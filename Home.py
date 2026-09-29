@@ -24,7 +24,7 @@ def menuPrincipal(profesionales, pacientes, turnos):
             case 1:
                 Turnero.darTurno(profesionales,pacientes, turnos)
             case 2:
-                Turnero.reprogramarTurno(turnos)
+                Turnero.reprogramarTurno(profesionales, turnos)
             case 3:
                 Turnero.cancelarTurno(turnos)
             case 4:
@@ -40,12 +40,46 @@ def menuPrincipal(profesionales, pacientes, turnos):
 
 
 def main():
+    #Cada profesional se guarda en una lista con su legajo,
+    #su nombre, especialidad y horarios de atención.
+    #Los horarios se organizan en un diccionario por día.
+    #Una lista vacía significa que el profesional no atiende
     profesionales = [
-        ["1", "Perez, Carolina", "Cardiologia", 9, 17],
-        ["2", "Gomez, Alejandra", "Clinica Medica", 8, 16],
-        ["3", "Lopez, Eduardo", "Traumatologia", 10, 18]  # incluimos profesionales de prueba
+        ["1", "Perez, Carolina", "Cardiología",
+         {"lunes": ["09:00", "13:00"],
+          "martes":["15:00", "19:00"],
+          "miércoles": ["09:00", "13:00"],
+          "jueves": ["15:00", "19:00"],
+          "viernes": ["09:00", "13:00"],
+          "sábado": [],
+          "domingo": []}
+        ],
+        ["2", "Gomez, Alejandra", "Clínica Medica",
+         {
+             "lunes": ["08:00","12:00"],
+             "martes":["08:00","12:00"],
+             "miércoles":[],
+             "jueves":["14:00","18:00"],
+             "viernes":["14:00","18:00"],
+             "sábado":[],
+             "domingo":[]
+         }
+        ],
+        ["3", "Lopez, Eduardo", "Traumatología",
+         {"lunes": ["10:00","14:00"],
+          "martes":[],
+          "miércoles":["10:00","14:00"],
+          "jueves":["16:00","20:00"],
+          "viernes":["10:00","14:00"],
+          "sábado":[],
+          "domingo":[]
+          }
+        ]  # incluimos profesionales de prueba
     ]
+
+    #Los pacientes se guardan en un diccionario utilizando el legajo como clave
     pacientes = {}
+    #Cada turno guarda el legajo del paciente, el legajo del profesional, la fecha y la hora
     turnos = []
 
     menuPrincipal(profesionales, pacientes, turnos)

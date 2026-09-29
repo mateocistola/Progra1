@@ -1,34 +1,134 @@
+#Comprueba que una hora tenga el formato HH:MM y que
+#las horas y los minutos estén dentro de los valores permitidos
+def validarHora(hora):
+    partes = hora.split(":")
+    horaValida = False
 
-#para sacar el horario del profesional que se esta sacando turno, chequeamos con el id y evitamos reescribir.
-def getHorarioProfesional(profesionales, legajo):
+    if len(partes) == 2:
+        if len(partes[0]) == 2 and len(partes[1]) == 2:
+            if partes[0].isdigit() and partes[1].isdigit():
+                horas = int(partes[0])
+                minutos = int(partes[1])
+
+                if 0 <= horas <= 23 and 0 <= minutos <= 59:
+                    horaValida = True
+    return horaValida
+
+#Comprueba que las dos horas sean válidas y que la hora
+#de inicio sea anterior a la hora de finalización
+def validarRangoHorario(horaInicio, horaFin):
+    rangoValido = False
+
+    if validarHora(horaInicio) and validarHora(horaFin):
+        partesInicio = horaInicio.split(":")
+        partesFin = horaFin.split(":")
+
+#Convertimos las horas completadas a minutos para poder comparar
+        #fácilmente el comienzo y el final
+        minutosInicio = (int(partesInicio[0])* 60 + int(partesInicio[1]))
+
+        minutosFin = int(partesFin[0])* 60 + int(partesFin[1])
+
+        if minutosInicio < minutosFin:
+            rangoValido = True
+    return rangoValido
+
+#Busca un profesional por su legajo utilizando recursividad
+#La posición indica el profesional que se está comprobando
+def buscarProfesionalPorLegajo(profesionales, legajo, posicion = 0):
+
+    #Como base: se llegó al final sin encontrar el legajo
+    if posicion == len(profesionales):
+        profesionalEncontrado = None
+    #El profesional de la posición actual tiene el legajo buscado
+    elif profesionales[posicion][0] == legajo:
+        profesionalEncontrado = profesionales[posicion]
+    #Caso recursivo, se continúa buscando en la siguiente posición
+    else:
+        profesionalEncontrado = buscarProfesionalPorLegajo(profesionales, legajo, posicion + 1)
+
+    return profesionalEncontrado
+
+#Devuelve el horario de un profesional para un día concreto, si la lista del día está vacía, significa que no atiende.
+#para sacar el horario del profesional que se está sacando turno, chequeamos el id y evitamos reescribir.
+def getHorarioProfesional(profesionales, legajo, dia):
     horario = None
 
     for profesional in profesionales:
         if profesional[0] == legajo:
-            horario = str(profesional[3]) + " a " + str(profesional[4]) + " hs"
+            horarios = profesional[3]
+
+            if dia in horarios:
+                horarioDia = horarios[dia]
+
+                if horarioDia:
+                    horario = horarioDia[0] + " a " + horarioDia[1] + " hs"
+                else:
+                    horario = "No atiende"
     return horario
+
 
 #para chequear si el profesional tiene turnos asignados, es util por ejemplo al momento de eliminar un profesional, primero chequear si tiene turnos
 def tieneTurnos(turnos, legajo):
     tieneTurnosAsignados = False
 
     for turno in turnos:
+    #La posición 1 contiene el legajo del profesional
         if turno[1] == legajo:
             tieneTurnosAsignados = True
     return tieneTurnosAsignados
 
+#Muestra los datos de todos los profesionales junto con sus horarios de atención
+#para cada día de la semana
 def mostrarProfesionales(profesionales):
     print("Los profesionales disponibles son: ")
 
     for profesional in profesionales:
-        print(
-            "Legajo: " + profesional[0] +
-            ", Nombre: " + profesional[1] +
-            ", Especialidad: " + profesional[2] +
-            ", Horario: " + getHorarioProfesional(profesionales, profesional[0])
-        )
+        print("Legajo: " + profesional[0])
+        print("Nombre: " + profesional[1])
+        print("Especialidad: " + profesional[2])
+        print(" Horario:")
+
+        #La petición 3 contiene el diccionario de horarios
+        horarios = profesional[3]
+
+        #Recorremos el diccionario para mostrar el horario correspondiente a cada día
+        for dia in horarios:
+
+            #Una lista con dos elementos contiene la hora de inicio y la hora de finalización
+            if horarios[dia]:
+                print(dia + ": " + horarios[dia][0] + " a " + horarios[dia][1] + " hs")
+            else:
+                #Una lista vacía indica que ese día no se atiende
+                print(dia + ": No atiende")
+
+        print()
 
 
+#Solicita un legajo, busca el profesional de forma recursiva y muestra sus datos y horarios si existe
+def mostrarProfesionalPorLegajo(profesionales):
+    legajo = input("Ingrese el legajo del profesional: ")
+
+    #Utilizamos la función recursiva para realizar la búsqueda
+    profesionalEncontrado = buscarProfesionalPorLegajo(profesionales, legajo)
+
+    #Si la búsqueda devuelve None, el legajo no está registrado
+    if profesionalEncontrado is None:
+        print("No se encontró un profesional con el legajo ingresado")
+    else:
+        print("Legajo: " + profesionalEncontrado[0])
+        print("Nombre: " + profesionalEncontrado[1])
+        print("Especialidad: " + profesionalEncontrado[2])
+        print("Horarios: ")
+
+        #Mostramos los horarios guardados en la posición 3
+        horarios = profesionalEncontrado[3]
+
+        for dia in horarios:
+            if horarios[dia]:
+                print(dia + ": " + horarios[dia][0] + " a " + horarios[dia][1] + " hs ")
+            else:
+                print(dia + ": No atiende")
 
 
 def menu(profesionales, turnos):
@@ -40,7 +140,8 @@ def menu(profesionales, turnos):
         "2 para quitar un profesional. \n"
         "3 para modificar un profesional. \n"
         "4 para modificar el horario de un profesional. \n"
-        "5 para salir. \n"
+        "5 para buscar un profesional por legajo. \n"
+        "6 para salir al menú principal. \n"
     ))
 
     match eleccion:
@@ -53,13 +154,15 @@ def menu(profesionales, turnos):
         case 4:
             modificarHorario(profesionales)
         case 5:
+            mostrarProfesionalPorLegajo(profesionales)
+        case 6:
             print("Volvemos al menú principal")
         case _:
             print("Opción incorrecta.")
 
    
 
-
+#Permite modificar el horario de un profesional para un día concreto o indicar que ese día no atiende.
 def modificarHorario(profesionales):
     legajo = input("Ingrese el legajo del profesional: ")
 
@@ -70,16 +173,42 @@ def modificarHorario(profesionales):
             profesionalEncontrado = profesional
 
     if profesionalEncontrado:
-        print(
-              "Horario actual: " +
-              getHorarioProfesional(profesionales, legajo)
-        )
+        #Recuperamos el diccionario completo de horarios
+        horarios = profesionalEncontrado[3]
 
-        horaInicio = input("Ingrese nuevo horario de comienzo de atencion: ")
-        horaFin = input("Ingrese nuevo horario de fin de atencion: ")
+        print("Días disponibles: ")
 
-        profesionalEncontrado[3] = horaInicio
-        profesionalEncontrado[4] = horaFin
+        for dia in horarios:
+            print(dia)
+
+        dia = input("Ingrese el día que deseas modificar: ")
+        #EL día introducido debe existir como clave del diccionario
+        while dia not in horarios:
+            print("Día incorrecto")
+            dia = input("Ingrese nuevamente el día: ")
+
+        print("Horario actual: " + getHorarioProfesional(profesionales, legajo, dia))
+
+        #Si no atiende, guardaremos una lista vacía para ese día
+        atiende = input("¿El profesional atiende ese día? Ingrese s o n: ")
+
+        while atiende != "s" and atiende != "n":
+            print("Opción incorrecta")
+            atiende = input("Ingrese s o n")
+        if atiende == "s":
+            horaInicio = input("Ingrese nuevo horario de comienzo de atención: ")
+            horaFin = input("Ingrese nuevo horario de fin de atención: ")
+
+            #Volvemos a solicitar las horas para obtener un rango válido
+            while not validarRangoHorario(horaInicio,horaFin):
+                print("Horario inválido")
+                horaInicio = input("Ingrese nuevamente la hora de inicio: ")
+                horaFin = input("Ingrese nuevamente la hora de fin: ")
+            #Sustituimos únicamente el horario del día elegido
+            horarios[dia] = [horaInicio, horaFin]
+        else:
+            #La lista vacía representa un día sin atención.
+            horarios[dia] = []
 
         print("Horario modificado")
     else:
@@ -127,40 +256,71 @@ def editarProfesionales(profesionales):
        print("No se encontró un profesional con el legajo ingresado")
 
 
-
+#Registra un nuevo profesional y solicita sus horarios de atención para cada día de la semana
 def agregarProfesionales(profesionales):
     mostrarProfesionales(profesionales)
 
     legajo = input("Ingrese legajo del profesional para agregar: ")
-    nombre = input("Ingrese nombre del profesional: ")
-    especialidad = input("Ingrese especialidad del profesional: ")
-    horaInicio = input(
-        "Ingrese horario de comienzo de atencion: "
-    )
-    horaFin = input(
-        "Ingrese horario de fin de atencion: "
-    )
+    #Comprobamos que no exista otro profesional con el mismo legajo
+    legajoRegistrado = False
 
-    profesionales.append([
-        legajo,
-        nombre,
-        especialidad,
-        horaInicio,
-        horaFin
-    ])
+    for profesional in profesionales:
+        if profesional[0] == legajo:
+            legajoRegistrado = True
+    if legajoRegistrado:
+        print("Ya existe un profesional con ese legajo")
+    else:
+        nombre = input("Ingrese nombre del profesional: ")
+        especialidad = input("Ingrese especialidad del profesional: ")
+        #Esta lista se utiliza para solicitar el horario de todos los días de la semana
+        dias = ["lunes","martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        #El diccionario relaciona cada día con su rango horario
+        horarios = {}
+        #Solicitamos el horario de atención de cada día
+        for dia in dias:
+            atiende = input("¿El profesional atiende el " + dia + "? Ingrese s o n: ")
 
-    print("Profesional agregado correctamente")
+            while atiende != "s" and atiende != "n":
+                print("Opción incorrecta")
+                atiende = input("Ingrese s o n")
 
+            if atiende == "s":
+                horaInicio = input("Ingrese horario de comienzo con formato HH:MM: ")
+                horaFin = input("Ingrese horario de fin con formato HH:MM: ")
 
+                #Las horas se vuelve a solicitar si el formato o el orden del rango no son válidos
+                while not validarRangoHorario(horaInicio, horaFin):
+                    print("Horario invalido")
+                    horaInicio = input("Ingrese nuevamente la hora de inicio: ")
+                    horaFin = input("Ingrese nuevamente la hora de fin: ")
+
+                #Guardamos la hora de inicio y de fin del día
+                horarios[dia] = [horaInicio, horaFin]
+            else:
+                #Si no atiende, se guarda una lista vacía
+                horarios[dia] = []
+
+                #Añadimos el profesional con todos sus dato sy horarios.
+        profesionales.append([
+            legajo,
+            nombre,
+            especialidad,
+            horarios
+        ])
+
+        print("Profesional agregado correctamente")
+
+#Elimina un profesional solamente si no tiene turnos asignados
 def quitarProfesionales(profesionales, turnos):
     mostrarProfesionales(profesionales)
 
     legajo = input("Ingrese el legajo del profesional a quitar: ")
-
+    #Primero comprovamos que sus turnos hayan sido cancelados
     if tieneTurnos(turnos, legajo):
         print("No se puede eliminar el profesional porque tiene turnos asignados, cancele primero los turnos.")
 
     else:
+        #Guardamos el profesional encontrado para eliminarlo después de terminar el recorrido
         profesionalesEliminar = []
 
         for profesional in profesionales:
@@ -168,6 +328,7 @@ def quitarProfesionales(profesionales, turnos):
                 profesionalesEliminar = profesional
 
         if profesionalesEliminar:
+            #Eliminamoos de la lista el profesional encontrado
             profesionales.remove(profesionalesEliminar)
             print("Profesional eliminado")
         else:
