@@ -111,3 +111,36 @@ def quitarEspecialidad(especialidades, profesionales):
     else:
         especialidades.remove(especialidadEncontrada)
         print("Especialidad eliminada correctamente")
+
+#Permite gestionar las especialidades registradas en el sistema
+
+def menu(especialidades, profesionales):
+    eleccion = 0
+
+    while eleccion != 5:
+        eleccion = input(
+            "Gestión de especialidad, ingrese: \n"
+            "1 para agregar una especialidad. \n"
+            "2 para listar las especialidades. \n"
+            "3 para modificar una especialidad. \n"
+            "4 para eliminar una especialidad. \n"
+            "5 para volver al menú principal. \n"
+        )
+        while not eleccion.isdigit():
+            print("Opción incorrecta.")
+            eleccion = input("Ingrese una opción entre el 1 y 5: ")
+        eleccion = int(eleccion)
+
+        match eleccion:
+            case 1:
+                agregarEspecialidad(especialidades)
+            case 2:
+                listarEspecialidades(especialidades)
+            case 3:
+                modificarEspecialidad(especialidades, profesionales)
+            case 4:
+                quitarEspecialidad(especialidades, profesionales)
+            case 5:
+                print("Volviendo al menú principal")
+            case _:
+                print("Opción incorrecta.")

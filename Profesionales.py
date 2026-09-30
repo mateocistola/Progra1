@@ -1,3 +1,5 @@
+import Especialidades
+
 #Comprueba que una hora tenga el formato HH:MM y que
 #las horas y los minutos estén dentro de los valores permitidos
 def validarHora(hora):
@@ -49,8 +51,17 @@ def buscarProfesionalPorLegajo(profesionales, legajo, posicion = 0):
 
     return profesionalEncontrado
 
+#Busca todos los profesionales que pertenecen a una especialidad
+
+def buscarProfesionalesPorEspecialidad(profesionales, especialidad):
+    profesionalEncontrados = []
+
+    for profesional in profesionales:
+        if profesional[2].lower() == especialidad.lower():
+            profesionalEncontrados.append(profesional)
+    return profesionalEncontrados
 #Devuelve el horario de un profesional para un día concreto, si la lista del día está vacía, significa que no atiende.
-#para sacar el horario del profesional que se está sacando turno, chequeamos el id y evitamos reescribir.
+#Para sacar el horario del profesional que se está sacando turno, chequeamos el id y evitamos reescribir.
 def getHorarioProfesional(profesionales, legajo, dia):
     horario = None
 
@@ -87,6 +98,7 @@ def mostrarProfesionales(profesionales):
         print("Legajo: " + profesional[0])
         print("Nombre: " + profesional[1])
         print("Especialidad: " + profesional[2])
+        print("Duración de cada turno: " + str(profesional[4]) + " minutos")
         print(" Horario:")
 
         #La petición 3 contiene el diccionario de horarios
@@ -119,6 +131,7 @@ def mostrarProfesionalPorLegajo(profesionales):
         print("Legajo: " + profesionalEncontrado[0])
         print("Nombre: " + profesionalEncontrado[1])
         print("Especialidad: " + profesionalEncontrado[2])
+        print("Duración de cada turno: " + str(profesionalEncontrado[4]) + " minutos")
         print("Horarios: ")
 
         #Mostramos los horarios guardados en la posición 3
@@ -131,7 +144,7 @@ def mostrarProfesionalPorLegajo(profesionales):
                 print(dia + ": No atiende")
 
 
-def menu(profesionales, turnos):
+def menu(profesionales, turnos, especialidades):
 
 
     eleccion = int(input(
@@ -146,11 +159,11 @@ def menu(profesionales, turnos):
 
     match eleccion:
         case 1:
-            agregarProfesionales(profesionales)
+            agregarProfesionales(profesionales, especialidades)
         case 2:
             quitarProfesionales(profesionales, turnos)
         case 3:
-            editarProfesionales(profesionales)
+            editarProfesionales(profesionales, especialidades, turnos)
         case 4:
             modificarHorario(profesionales)
         case 5:
@@ -182,7 +195,7 @@ def modificarHorario(profesionales):
             print(dia)
 
         dia = input("Ingrese el día que deseas modificar: ")
-        #EL día introducido debe existir como clave del diccionario
+        #El día introducido debe existir como clave del diccionario
         while dia not in horarios:
             print("Día incorrecto")
             dia = input("Ingrese nuevamente el día: ")
@@ -216,7 +229,7 @@ def modificarHorario(profesionales):
 
 
 
-def editarProfesionales(profesionales):
+def editarProfesionales(profesionales, especialidades, turnos):
     mostrarProfesionales(profesionales)
 
     legajo = input("Ingrese legajo del profesional para editar: ")
@@ -238,7 +251,7 @@ def editarProfesionales(profesionales):
             nombre = profesionalEncontrado[1]
 
        print("Especialidad actual: " + profesionalEncontrado[2])
-
+       Especialidades.listarEspecialidades(especialidades)
        especialidad = input(
                 "Ingrese nueva especialidad: o bien presione enter "
                 "para mantener la especialidad actual: "
@@ -246,9 +259,30 @@ def editarProfesionales(profesionales):
 
        if especialidad == "":
             especialidad = profesionalEncontrado[2]
+       else:
+           while not Especialidades.especialidadRegistrada(especialidades, especialidad):
+               print("La especialidad ingresada no está registrada")
+               especialidad = input("Ingrese de nuevo la especialidad: ")
+           # Guardamos el nombre tal y como aparece registrado
+           for nombreEspecialidad in especialidades:
+               if nombreEspecialidad.lower() == especialidad.lower():
+                   especialidad = nombreEspecialidad
+       print("Duración actual de los turnos: " + str(profesionalEncontrado[4]) + " minutos")
+       duracionTurno = input("Ingrese la nueva duración o presione enter para mantener la duración actual: ")
+       if duracionTurno == "":
+           duracionTurno = profesionalEncontrado[4]
+       elif tieneTurnos(turnos, legajo):
+           print("No se puede modificar la duración porque el profesional tiene turnos asignados")
+           duracionTurno = profesionalEncontrado[4]
+       else:
+           while(not duracionTurno.isdigit() or int(duracionTurno) <= 0 ):
+               print("La duración debe ser un número mayor que cero")
+               duracionTurno = input("Ingrese nuevamente la duración en minutos: ")
+           duracionTurno = int(duracionTurno)
 
        profesionalEncontrado[1] = nombre
        profesionalEncontrado[2] = especialidad
+       profesionalEncontrado[4] = duracionTurno
 
        print("Profesional  modificado")
     else:
@@ -257,8 +291,12 @@ def editarProfesionales(profesionales):
 
 
 #Registra un nuevo profesional y solicita sus horarios de atención para cada día de la semana
-def agregarProfesionales(profesionales):
+def agregarProfesionales(profesionales, especialidades):
     mostrarProfesionales(profesionales)
+
+    if not especialidades:
+        print("No se pueden añadir profesionales porque no hay especialidades registradas")
+        return
 
     legajo = input("Ingrese legajo del profesional para agregar: ")
     #Comprobamos que no exista otro profesional con el mismo legajo
@@ -271,7 +309,21 @@ def agregarProfesionales(profesionales):
         print("Ya existe un profesional con ese legajo")
     else:
         nombre = input("Ingrese nombre del profesional: ")
+        Especialidades.listarEspecialidades(especialidades)
         especialidad = input("Ingrese especialidad del profesional: ")
+        while not Especialidades.especialidadRegistrada(especialidades,especialidad):
+            print("La especialidad ingresada no está registrada")
+            especialidad = input("Ingrese de nuevo la especialidad: ")
+        for nombreEspecialidad in especialidades:
+            if nombreEspecialidad.lower() == especialidad.lower():
+                especialidad = nombreEspecialidad
+        #Solicitamos la duración de los turnos del profesional
+        duracionTurno = input("Ingrese la duración de cada turno en minutos: ")
+        while(not duracionTurno.isdigit() or int(duracionTurno) <= 0):
+            print("La duración debe ser un número mayor que cero")
+            duracionTurno = input("Ingrese nuevamente la duración en minutos: ")
+            duracionTurno = int(duracionTurno)
+
         #Esta lista se utiliza para solicitar el horario de todos los días de la semana
         dias = ["lunes","martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
         #El diccionario relaciona cada día con su rango horario
@@ -300,12 +352,13 @@ def agregarProfesionales(profesionales):
                 #Si no atiende, se guarda una lista vacía
                 horarios[dia] = []
 
-                #Añadimos el profesional con todos sus dato sy horarios.
+        #Añadimos el profesional con todos sus datos y horarios.
         profesionales.append([
             legajo,
             nombre,
             especialidad,
-            horarios
+            horarios,
+            duracionTurno
         ])
 
         print("Profesional agregado correctamente")
@@ -315,7 +368,7 @@ def quitarProfesionales(profesionales, turnos):
     mostrarProfesionales(profesionales)
 
     legajo = input("Ingrese el legajo del profesional a quitar: ")
-    #Primero comprovamos que sus turnos hayan sido cancelados
+    #Primero comprobamos que sus turnos hayan sido cancelados
     if tieneTurnos(turnos, legajo):
         print("No se puede eliminar el profesional porque tiene turnos asignados, cancele primero los turnos.")
 

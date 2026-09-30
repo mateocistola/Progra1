@@ -1,4 +1,6 @@
 from datetime import datetime
+
+import Especialidades
 import Profesionales
 import Pacientes
 
@@ -146,14 +148,32 @@ def validarHorarioProfesional(profesionales, legajo, fecha, hora):
     return horarioValido
 
 #Asigna un turno a un paciente registrado comprobando la existencia del profesional, su horario y la disponibilidad
-def darTurno(profesionales, pacientes, turnos):
-    print("Seleccione un profesional...")
-    Profesionales.mostrarProfesionales(profesionales)
+def darTurno(profesionales, pacientes, turnos, especialidades):
+    if not especialidades:
+        print("No hay especialidades registradas")
+        return
+    #El paciente selecciona primero la especialidad
+    Especialidades.listarEspecialidades(especialidades)
+
+    especialidad = input("Ingrese la especialidad para solicitar el turno")
+
+    while not Especialidades.especialidadRegistrada(especialidades, especialidad):
+        print("La especialidad ingresada no está registrada")
+        especialidad = input("Ingrese de nuevo la especialidad: ")
+
+    #Buscamos solamente los profesionales de esa especialidad
+    profesionalesEspecialidad = (Profesionales.buscarProfesionalesPorEspecialidad(especialidades, especialidad))
+
+    if not profesionalesEspecialidad:
+        print("No hay profesionales registrados para esa especialidad")
+        return
+
+    Profesionales.mostrarProfesionales(profesionalesEspecialidad)
 
     legajo = input("Ingrese legajo del profesional: \n")
 
     #Buscamos al profesional por legajo utilizando la función recursiva del módulo Profesionales
-    profesionalEncontrado = Profesionales.buscarProfesionalPorLegajo(profesionales, legajo)
+    profesionalEncontrado = Profesionales.buscarProfesionalPorLegajo(profesionalesEspecialidad, legajo)
 
     if profesionalEncontrado is not None:
         legajoPaciente = input("Ingrese el legajo del paciente: ")
