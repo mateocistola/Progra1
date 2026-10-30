@@ -147,216 +147,290 @@ def validarHorarioProfesional(profesionales, legajo, fecha, hora):
                     horarioValido = True
     return horarioValido
 
-#Asigna un turno a un paciente registrado comprobando la existencia del profesional, su horario y la disponibilidad
+
 def darTurno(profesionales, pacientes, turnos, especialidades):
+
     if not especialidades:
         print("No hay especialidades registradas")
         return
-    #El paciente selecciona primero la especialidad
+
+    # Seleccionamos la especialidad mediante su número
     Especialidades.listarEspecialidades(especialidades)
 
-    especialidad = input("Ingrese la especialidad para solicitar el turno")
+    opcion = input("Seleccione el número de la especialidad: ")
 
-    while not Especialidades.especialidadRegistrada(especialidades, especialidad):
-        print("La especialidad ingresada no está registrada")
-        especialidad = input("Ingrese de nuevo la especialidad: ")
+    while not opcion.isdigit() or int(opcion) < 1 or int(opcion) > len(especialidades):
+        print("Opción incorrecta")
+        opcion = input("Seleccione nuevamente la especialidad: ")
 
-    #Buscamos solamente los profesionales de esa especialidad
-    profesionalesEspecialidad = (Profesionales.buscarProfesionalesPorEspecialidad(especialidades, especialidad))
+    especialidad = especialidades[int(opcion) - 1]
+
+    profesionalesEspecialidad = Profesionales.buscarProfesionalesPorEspecialidad(
+        profesionales, especialidad
+    )
 
     if not profesionalesEspecialidad:
         print("No hay profesionales registrados para esa especialidad")
         return
 
-    Profesionales.mostrarProfesionales(profesionalesEspecialidad)
+    # Comprobamos que el paciente esté registrado
+    dni = input("Ingrese el DNI del paciente: ")
 
-    legajo = input("Ingrese legajo del profesional: \n")
+    pacienteEncontrado = Pacientes.buscarPacientePorDNI(pacientes, dni)
 
-    #Buscamos al profesional por legajo utilizando la función recursiva del módulo Profesionales
-    profesionalEncontrado = Profesionales.buscarProfesionalPorLegajo(profesionalesEspecialidad, legajo)
+    while pacienteEncontrado is None:
 
-    if profesionalEncontrado is not None:
-        legajoPaciente = input("Ingrese el legajo del paciente: ")
+        print("No existe un paciente registrado con ese DNI, ¿querés registrarlo? (S/N)")
+        opcion = input("Ingrese su elección: ")
 
-        #El turno solo puede asignarse a un paciente previamente registrado en el sistema
-        pacienteEncontrado = Pacientes.buscarPacientePorLegajo(pacientes, legajoPaciente)
+        if opcion.upper() == "S":
+            Pacientes.registrarPaciente(pacientes)
 
-        #Se vuelve a solicitar el legajo hasta encontrar un paciente registrado
-        while pacienteEncontrado is None:
-            print("No existe un paciente registrado con ese legajo")
-            legajoPaciente = input("Ingrese nuevamente el legajo del paciente: ")
+        dni = input("Ingrese nuevamente el DNI del paciente: ")
 
-            pacienteEncontrado = Pacientes.buscarPacientePorLegajo(pacientes, legajoPaciente)
+        pacienteEncontrado = Pacientes.buscarPacientePorDNI(pacientes, dni)
 
-        #El turno solamente se guardará cuando cumpla todas las condiciones necesarias
-        turnoValido = False
+    # Buscamos el primer turno disponible desde la fecha actual
+    resultado = Profesionales.buscarPrimerTurnoLibre(
+        profesionalesEspecialidad, turnos, especialidad, dni
+    )
 
-        #Si existe algún problema, se solicita otra fecha y hora
-        while not turnoValido:
-            fecha, hora = ingresarFechaHora()
+    profesionalEncontrado = None
+    fecha = ""
+    hora = ""
+    esSobreturno = False
 
-        #Comprobamos que el profesional atienda ese día y que la hora esté dentro de su jornada
-            horarioValido = validarHorarioProfesional(profesionales, legajo, fecha, hora)
+    if resultado is not None:
 
-        #Si el horario no es válido, mostramos el horario del profesional para el día seleccionado
-            if not horarioValido:
-                diaSemana = obtenerDiaSemana(fecha)
+        profesionalEncontrado, fecha, hora, esSobreturno = resultado
 
-                print("El profesional no atiende ese día o esa hora")
-                print("Horario del " + diaSemana + ": " + Profesionales.getHorarioProfesional(profesionales, legajo, diaSemana))
-            else:
+        print("\nPrimer turno disponible:")
+        print("Profesional:", profesionalEncontrado[1])
+        print("Fecha:", fecha)
+        print("Hora:", hora)
 
-                #Nos permite comprobar por separado la disponibilidad del profesional y del paciente
-                horarioOcupado = False
-                pacienteOcupado = False
+        if esSobreturno:
+            print("Tipo: Sobreturno")
 
-                for turno in turnos:
-
-                    #El profesional no puede tener dos turnos en la misma fecha y hora
-                    if (
-                        turno[1] == legajo
-                        and turno[2] == fecha
-                        and turno[3] == hora
-                    ):
-                        horarioOcupado = True
-                    if (
-                        #El paciente tampoco puede tener dos turnos en la misma fecha y hora
-                        turno[0] == legajoPaciente
-                        and turno[2] == fecha
-                        and turno[3] == hora
-                    ):
-                        pacienteOcupado = True
-                if horarioOcupado:
-                    print("El profesional ya tiene un turno en esa fecha y hora, los horarios que tiene ocupados son: \n")
-                    for turno in turnos:
-                        if (
-                            turno[1] == legajo
-                            and turno[2] == fecha
-                        ):
-                            print(" - " + turno[3])
-                elif pacienteOcupado:
-                    print("El paciente ya tiene otro turno en esa fecha y hora")
-                else:
-                    #Todas las comprobaciones fueron correctas, por lo que podemos finalizar el bucle
-                    turnoValido = True
-
-        #Guardamos los legajos, la fecha y la hora del turno
-        turnos.append([legajoPaciente, legajo, fecha, hora])
-
-        print("Turno dado correctamente \n")
+        opcion = input("¿Desea aceptar este turno? (S/N): ")
 
     else:
-        print("No se ha encontrado a ningún profesional con el legajo ingresado \n")
+        print("No se encontraron turnos disponibles automáticamente")
+        opcion = "N"
+
+    # Si el paciente no acepta, puede buscar manualmente
+    if opcion.upper() != "S":
+
+        turnoValido = False
+
+        while not turnoValido:
+
+            fecha, hora = ingresarFechaHora()
+
+            diaSemana = obtenerDiaSemana(fecha)
+
+            profesionalEncontrado = Profesionales.buscarProfesionalParaFechaHora(
+                profesionalesEspecialidad,
+                turnos,
+                especialidad,
+                dni,
+                diaSemana,
+                fecha,
+                hora
+            )
+
+            if profesionalEncontrado is None:
+                print("No hay profesionales disponibles para esa fecha y hora")
+            else:
+                turnoValido = True
+
+                # Comprobamos si el horario corresponde a un sobreturno
+                partesHora = hora.split(":")
+                minutosHora = int(partesHora[0]) * 60 + int(partesHora[1])
+
+                partesFin = profesionalEncontrado[3][diaSemana][1].split(":")
+                minutosFin = int(partesFin[0]) * 60 + int(partesFin[1])
+
+                esSobreturno = minutosHora >= minutosFin
+
+    # Registramos el turno
+    legajo = profesionalEncontrado[0]
+
+    turnos.append([dni, legajo, fecha, hora])
+
+    print("\nTurno dado correctamente")
+    print("Paciente:", pacienteEncontrado["nombre"], pacienteEncontrado["apellido"])
+    print("Profesional:", profesionalEncontrado[1])
+    print("Especialidad:", profesionalEncontrado[2])
+    print("Fecha:", fecha)
+    print("Hora:", hora)
+
+    if esSobreturno:
+        print("Turno asignado como sobreturno")
 
 
 #Permite seleccionar uno de los turnos del paciente y cambiar su fecha y hora respetando el horario del profesional.
-def reprogramarTurno(profesionales, turnos):
-    if not turnos: #si no hay turnos no tiene sentido seguir con la función, esto se replica en todos los casos que sea necesario
+# Permite reprogramar un turno, mantener la especialidad o elegir otra.
+def reprogramarTurno(profesionales, turnos, especialidades):
+    if not turnos:
         print("No hay turnos registrados en el sistema. \n")
         return
-    
-    legajoPaciente = input("Ingrese el legajo del paciente: ")
 
-    #Guardamos en una lista solamente los turnos que pertenecen al paciente indicado
+    dniPaciente = input("Ingrese el DNI del paciente: ")
+
     turnosPaciente = []
 
     for turno in turnos:
-        #La posición 0 contiene el legajo del paciente
-        if turno[0] == legajoPaciente:
+        if turno[0] == dniPaciente:
             turnosPaciente.append(turno)
 
     if not turnosPaciente:
-        print("No hay turnos asignados para el legajo: " + legajoPaciente + "\n")
+        print("No hay turnos asignados para el DNI: " + dniPaciente + "\n")
+        return
 
-    else:
-        print("Estos son los turnos del paciente \n")
+    print("Estos son los turnos del paciente:\n")
 
-        #Mostramos los turnos con una numeración que empieza en el 1
-        for posicion in range(len(turnosPaciente)):
-            print("Turno", posicion + 1)
-            print("Legajo del profesional: " + turnosPaciente[posicion][1])
-            print("Fecha: " + turnosPaciente[posicion][2])
-            print("Hora: " + turnosPaciente[posicion][3])
-            print()
+    for posicion in range(len(turnosPaciente)):
+        print("Turno", posicion + 1)
+        print("Legajo del profesional: " + turnosPaciente[posicion][1])
+        print("Fecha: " + turnosPaciente[posicion][2])
+        print("Hora: " + turnosPaciente[posicion][3])
+        print()
 
-        #Creamos las opciones válidas según la cantidad de turnos que tenga el paciente.
-        opcionesValidas = []
+    opcionesValidas = []
 
-        for posicion in range(1, len(turnosPaciente) + 1):
-            opcionesValidas.append(str(posicion))
+    for posicion in range(1, len(turnosPaciente) + 1):
+        opcionesValidas.append(str(posicion))
 
-        opcion = input(
-            "Ingrese el número del turno que desea modificar: \n"
+    opcion = input("Ingrese el número del turno que desea reprogramar: ")
+
+    while opcion not in opcionesValidas:
+        print("Opción incorrecta")
+        opcion = input("Seleccione nuevamente el turno: ")
+
+    turnoReprogramar = turnosPaciente[int(opcion) - 1]
+
+    # Averiguamos la especialidad que tenía el turno original.
+    especialidadActual = ""
+
+    for profesional in profesionales:
+        if profesional[0] == turnoReprogramar[1]:
+            especialidadActual = profesional[2]
+            break
+
+    if especialidadActual == "":
+        print("No se encontró el profesional del turno seleccionado")
+        return
+
+    print("\nSeleccione cómo desea buscar el nuevo turno:")
+    print("1. Buscar el primer turno disponible de la misma especialidad (" + especialidadActual + ")")
+    print("2. Elegir manualmente fecha y hora de la misma especialidad")
+    print("3. Cambiar de especialidad y buscar disponibilidad")
+    print("4. Volver")
+
+    opcion = input("Ingrese una opción: ")
+
+    while opcion not in ["1", "2", "3", "4"]:
+        print("Opción incorrecta")
+        opcion = input("Ingrese una opción entre 1 y 4: ")
+
+    if opcion == "4":
+        return
+
+    especialidadElegida = especialidadActual
+
+    if opcion == "3":
+        if not especialidades:
+            print("No hay especialidades registradas")
+            return
+
+        Especialidades.listarEspecialidades(especialidades)
+        seleccion = input("Seleccione el número de la nueva especialidad: ")
+
+        while not seleccion.isdigit() or int(seleccion) < 1 or int(seleccion) > len(especialidades):
+            print("Opción incorrecta")
+            seleccion = input("Seleccione nuevamente la especialidad: ")
+
+        especialidadElegida = especialidades[int(seleccion) - 1]
+
+    profesionalesEspecialidad = Profesionales.buscarProfesionalesPorEspecialidad(
+        profesionales, especialidadElegida
+    )
+
+    if not profesionalesEspecialidad:
+        print("No hay profesionales registrados para esa especialidad")
+        return
+
+    # En la búsqueda automática excluimos el turno original para que no se bloquee a sí mismo.
+    if opcion == "1" or opcion == "3":
+        resultado = Profesionales.buscarPrimerTurnoLibre(
+            profesionalesEspecialidad, turnos, especialidadElegida,
+            dniPaciente, turnoReprogramar
         )
 
-        while opcion not in opcionesValidas:
-            print("Opción incorrecta")
-            opcion = input("Seleccione nuevamente el turno: \n ")
+        if resultado is not None:
+            profesionalNuevo, fechaNueva, horaNueva, esSobreturno = resultado
 
-        #Convertimos la opción después de comprobar que corresponde a uno de los turnos mostrados
-        opcion = int(opcion)
+            print("\nPrimer turno disponible:")
+            print("Profesional:", profesionalNuevo[1])
+            print("Especialidad:", profesionalNuevo[2])
+            print("Fecha:", fechaNueva)
+            print("Hora:", horaNueva)
 
-        #Restamos uno porque las posiciones de la lista empiezan en 0
-        turnoReprogramar = turnosPaciente[opcion - 1]
+            if esSobreturno:
+                print("Tipo: Sobreturno")
 
-        #Conservamos el profesional del turno original
-        legajoProfesional = turnoReprogramar[1]
+            aceptar = input("¿Desea reprogramar el turno para esta fecha? (S/N): ")
 
-        #Solicitamos una fehca y hora nueva hasta que todas las comprobaciones sean válidas
-        nuevoTurnoValido = False
+            if aceptar.upper() == "S":
+                turnoReprogramar[1] = profesionalNuevo[0]
+                turnoReprogramar[2] = fechaNueva
+                turnoReprogramar[3] = horaNueva
+                print("Turno reprogramado correctamente")
+                return
+        else:
+            print("No se encontraron turnos disponibles automáticamente")
 
-        while not nuevoTurnoValido:
-            fecha,hora = ingresarFechaHora()
+        opcionManual = input("¿Desea elegir manualmente una fecha y hora? (S/N): ")
+        if opcionManual.upper() != "S":
+            print("El turno original se mantiene sin cambios")
+            return
 
-            #Comprovamos que la fecha y hora nueva pertenecen al horario de atención del profesional
-            horarioValido = validarHorarioProfesional(profesionales, legajoProfesional, fecha, hora)
+    # Búsqueda manual: puede asignarse cualquier profesional de la especialidad elegida.
+    nuevoTurnoValido = False
 
-            if not horarioValido:
-                diaSemana = obtenerDiaSemana(fecha)
+    while not nuevoTurnoValido:
+        fechaNueva, horaNueva = ingresarFechaHora()
+        diaSemana = obtenerDiaSemana(fechaNueva)
 
-                print("El profesional no atiende ese día o a esa hora")
+        profesionalNuevo = Profesionales.buscarProfesionalParaFechaHora(
+            profesionalesEspecialidad, turnos, especialidadElegida,
+            dniPaciente, diaSemana, fechaNueva, horaNueva, turnoReprogramar
+        )
 
-                print("Horario del " + diaSemana + ": " + Profesionales.getHorarioProfesional(profesionales, legajoProfesional, diaSemana))
-            else:
+        if profesionalNuevo is None:
+            print("No hay profesionales disponibles para esa fecha y hora")
+        else:
+            nuevoTurnoValido = True
 
-                #Comprobamos por separado la disponibilidad del profesional y del paciente
-                horarioOcupado = False
-                pacienteOcupado = False
+            turnoReprogramar[1] = profesionalNuevo[0]
+            turnoReprogramar[2] = fechaNueva
+            turnoReprogramar[3] = horaNueva
 
+            print("\nTurno reprogramado correctamente")
+            print("Profesional:", profesionalNuevo[1])
+            print("Especialidad:", profesionalNuevo[2])
+            print("Fecha:", fechaNueva)
+            print("Hora:", horaNueva)
 
-                for turno in turnos:
-                    #No se compara el turno consigo mismo, se comprueba si el profesional ya está ocupado
-                    if (
-                        turno != turnoReprogramar
-                        and turno[1] == turnoReprogramar[1]
-                        and turno[2] == fecha
-                        and turno[3] == hora
-                    ):
-                        horarioOcupado = True
+            partesHora = horaNueva.split(":")
+            minutosHora = int(partesHora[0]) * 60 + int(partesHora[1])
+            partesFin = profesionalNuevo[3][diaSemana][1].split(":")
+            minutosFin = int(partesFin[0]) * 60 + int(partesFin[1])
 
-                    #También comprobamos que el paciente no tenga otro turno en la fecha y hora nueva
-                    if(
-                        turno != turnoReprogramar
-                        and turno[0] == legajoPaciente
-                        and turno[2] == fecha
-                        and turno[3] == hora
-                    ):
-                        pacienteOcupado = True
-                if horarioOcupado:
-                    print(
-                        "El profesional ya tiene un turno esa fecha y hora, elija otro horario \n"
-                    )
-                elif pacienteOcupado:
-                    print("El paciente ya tiene otro turno en esa fecha y hora")
-                else:
-                    #la nueva fecha y hora son correctas, así que finalizamos el bucle
-                    nuevoTurnoValido = True
+            if minutosHora >= minutosFin:
+                print("Turno asignado como sobreturno")
 
-                    #Modificamos directamente la fecha y hora del turno seleccionado
-                    turnoReprogramar[2] = fecha
-                    turnoReprogramar[3] = hora
-
-                    print("Turno reprogramado correctamente \n")
 
 #Cancela uno de los turnos asignados al legajo de un paciente
 def cancelarTurno(turnos):
@@ -364,14 +438,14 @@ def cancelarTurno(turnos):
         print("No hay turnos registrados en el sistema. \n")
         return
     
-    legajoPaciente = input("Ingrese el legajo del paciente: ")
+    dniPaciente = input("Ingrese el DNI del paciente: ")
 
     #Guardamos únicamente los turnos del paciente indicado
     turnosPaciente = []
 
 
     for turno in turnos:
-        if turno[0] == legajoPaciente:
+        if turno[0] == dniPaciente:
             turnosPaciente.append(turno)
 
     if not turnosPaciente:
@@ -413,7 +487,7 @@ def listarTodosLosTurnos(turnos):
         print("Estos son todos los turnos en el sistema \n")
 
         for turno in turnos:
-            print("Legajo del paciente: " + turno[0])
+            print("DNI del paciente: " + turno[0])
             print("Legajo del profesional: " + turno[1])
             print("Fecha: " + turno[2])
             print("Hora: " + turno[3])

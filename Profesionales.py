@@ -1,4 +1,5 @@
 import Especialidades
+from datetime import datetime, timedelta
 
 #Comprueba que una hora tenga el formato HH:MM y que
 #las horas y los minutos estén dentro de los valores permitidos
@@ -87,6 +88,7 @@ def tieneTurnos(turnos, legajo):
     #La posición 1 contiene el legajo del profesional
         if turno[1] == legajo:
             tieneTurnosAsignados = True
+            break #cortamos el bucle porque ya encontramos un turno asignado y no hace falta seguir recorriendo la lista
     return tieneTurnosAsignados
 
 #Muestra los datos de todos los profesionales junto con sus horarios de atención
@@ -132,7 +134,9 @@ def mostrarProfesionalPorLegajo(profesionales):
         print("Nombre: " + profesionalEncontrado[1])
         print("Especialidad: " + profesionalEncontrado[2])
         print("Duración de cada turno: " + str(profesionalEncontrado[4]) + " minutos")
+        print("Cantidad de sobreturnos: " + str(profesionalEncontrado[5]))
         print("Horarios: ")
+
 
         #Mostramos los horarios guardados en la posición 3
         horarios = profesionalEncontrado[3]
@@ -145,33 +149,38 @@ def mostrarProfesionalPorLegajo(profesionales):
 
 
 def menu(profesionales, turnos, especialidades):
+    eleccion = 0
 
+    while eleccion != 6:
+        eleccion = input(
+            "Gestión de profesionales, ingrese: \n"
+            "1 para agregar un profesional. \n"
+            "2 para quitar un profesional. \n"
+            "3 para modificar un profesional. \n"
+            "4 para modificar el horario de un profesional. \n"
+            "5 para buscar un profesional por legajo. \n"
+            "6 para salir al menú principal. \n"
+        )
 
-    eleccion = int(input(
-        "Gestión de profesionales, ingrese: \n"
-        "1 para agregar un profesional. \n"
-        "2 para quitar un profesional. \n"
-        "3 para modificar un profesional. \n"
-        "4 para modificar el horario de un profesional. \n"
-        "5 para buscar un profesional por legajo. \n"
-        "6 para salir al menú principal. \n"
-    ))
-
-    match eleccion:
-        case 1:
-            agregarProfesionales(profesionales, especialidades)
-        case 2:
-            quitarProfesionales(profesionales, turnos)
-        case 3:
-            editarProfesionales(profesionales, especialidades, turnos)
-        case 4:
-            modificarHorario(profesionales)
-        case 5:
-            mostrarProfesionalPorLegajo(profesionales)
-        case 6:
-            print("Volvemos al menú principal")
-        case _:
+        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 6:
             print("Opción incorrecta.")
+            eleccion = input("Ingrese una opción entre 1 y 6: ")
+
+        eleccion = int(eleccion)
+
+        match eleccion:
+            case 1:
+                agregarProfesionales(profesionales, especialidades)
+            case 2:
+                quitarProfesionales(profesionales, turnos)
+            case 3:
+                editarProfesionales(profesionales, especialidades, turnos)
+            case 4:
+                modificarHorario(profesionales)
+            case 5:
+                mostrarProfesionalPorLegajo(profesionales)
+            case 6:
+                print("Volvemos al menú principal")
 
    
 
@@ -184,7 +193,7 @@ def modificarHorario(profesionales):
     for profesional in profesionales:
         if profesional[0] == legajo:
             profesionalEncontrado = profesional
-
+            break #cortamos el bucle porque ya encontramos el profesional y no hace falta seguir recorriendo la lista
     if profesionalEncontrado:
         #Recuperamos el diccionario completo de horarios
         horarios = profesionalEncontrado[3]
@@ -239,52 +248,64 @@ def editarProfesionales(profesionales, especialidades, turnos):
     for profesional in profesionales:
         if profesional[0] == legajo:
             profesionalEncontrado = profesional
+            break #cortamos el bucle porque ya encontramos el profesional y no hace falta seguir recorriendo la lista
 
     if profesionalEncontrado:
-       print("Nombre actual: " + profesionalEncontrado[1])
+        print("Nombre actual: " + profesionalEncontrado[1])
 
-       nombre = input(
-            "Ingrese nuevo nombre: o  enter para mantener el nombre actual: "
-       )
+        nombre = input(
+                "Ingrese nuevo nombre: o  enter para mantener el nombre actual: "
+        )
 
-       if nombre == "":
-            nombre = profesionalEncontrado[1]
+        if nombre == "":
+                nombre = profesionalEncontrado[1]
 
-       print("Especialidad actual: " + profesionalEncontrado[2])
-       Especialidades.listarEspecialidades(especialidades)
-       especialidad = input(
-                "Ingrese nueva especialidad: o bien presione enter "
-                "para mantener la especialidad actual: "
-       )
+        print("Especialidad actual: " + profesionalEncontrado[2])
+        Especialidades.listarEspecialidades(especialidades)
+        especialidad = input(
+                    "Ingrese nueva especialidad: o bien presione enter "
+                    "para mantener la especialidad actual: "
+        )
 
-       if especialidad == "":
-            especialidad = profesionalEncontrado[2]
-       else:
-           while not Especialidades.especialidadRegistrada(especialidades, especialidad):
-               print("La especialidad ingresada no está registrada")
-               especialidad = input("Ingrese de nuevo la especialidad: ")
-           # Guardamos el nombre tal y como aparece registrado
-           for nombreEspecialidad in especialidades:
-               if nombreEspecialidad.lower() == especialidad.lower():
-                   especialidad = nombreEspecialidad
-       print("Duración actual de los turnos: " + str(profesionalEncontrado[4]) + " minutos")
-       duracionTurno = input("Ingrese la nueva duración o presione enter para mantener la duración actual: ")
-       if duracionTurno == "":
-           duracionTurno = profesionalEncontrado[4]
-       elif tieneTurnos(turnos, legajo):
-           print("No se puede modificar la duración porque el profesional tiene turnos asignados")
-           duracionTurno = profesionalEncontrado[4]
-       else:
-           while(not duracionTurno.isdigit() or int(duracionTurno) <= 0 ):
-               print("La duración debe ser un número mayor que cero")
-               duracionTurno = input("Ingrese nuevamente la duración en minutos: ")
-           duracionTurno = int(duracionTurno)
+        if especialidad == "":
+                especialidad = profesionalEncontrado[2]
+        else:
+            while not Especialidades.especialidadRegistrada(especialidades, especialidad):
+                print("La especialidad ingresada no está registrada")
+                especialidad = input("Ingrese de nuevo la especialidad: ")
+            # Guardamos el nombre tal y como aparece registrado
+            for nombreEspecialidad in especialidades:
+                if nombreEspecialidad.lower() == especialidad.lower():
+                    especialidad = nombreEspecialidad
+        print("Duración actual de los turnos: " + str(profesionalEncontrado[4]) + " minutos")
+        duracionTurno = input("Ingrese la nueva duración o presione enter para mantener la duración actual: ")
+        if duracionTurno == "":
+            duracionTurno = profesionalEncontrado[4]
+        elif tieneTurnos(turnos, legajo):
+            print("No se puede modificar la duración porque el profesional tiene turnos asignados")
+            duracionTurno = profesionalEncontrado[4]
+        else:
+            while(not duracionTurno.isdigit() or int(duracionTurno) <= 0 ):
+                print("La duración debe ser un número mayor que cero")
+                duracionTurno = input("Ingrese nuevamente la duración en minutos: ")
+            duracionTurno = int(duracionTurno)
+        print("Sobreturnos actuales: " + str(profesionalEncontrado[5]))
 
-       profesionalEncontrado[1] = nombre
-       profesionalEncontrado[2] = especialidad
-       profesionalEncontrado[4] = duracionTurno
+        cantidadSobreturnos = input(
+            "Ingrese la nueva cantidad de sobreturnos o presione enter para mantener la actual: "
+        )
 
-       print("Profesional  modificado")
+        if cantidadSobreturnos != "":
+            while not cantidadSobreturnos.isdigit():
+                print("Ingrese un número válido")
+                cantidadSobreturnos = input("Ingrese nuevamente la cantidad: ")
+
+        profesionalEncontrado[1] = nombre
+        profesionalEncontrado[2] = especialidad
+        profesionalEncontrado[4] = duracionTurno
+        profesionalEncontrado[5] = int(cantidadSobreturnos)
+
+        print("Profesional  modificado")
     else:
 
        print("No se encontró un profesional con el legajo ingresado")
@@ -317,12 +338,16 @@ def agregarProfesionales(profesionales, especialidades):
         for nombreEspecialidad in especialidades:
             if nombreEspecialidad.lower() == especialidad.lower():
                 especialidad = nombreEspecialidad
+                break #cortamos el bucle porque ya encontramos la especialidad y no hace falta seguir recorriendo la lista
+
         #Solicitamos la duración de los turnos del profesional
         duracionTurno = input("Ingrese la duración de cada turno en minutos: ")
-        while(not duracionTurno.isdigit() or int(duracionTurno) <= 0):
+
+        while not duracionTurno.isdigit() or int(duracionTurno) <= 0:
             print("La duración debe ser un número mayor que cero")
             duracionTurno = input("Ingrese nuevamente la duración en minutos: ")
-            duracionTurno = int(duracionTurno)
+
+        duracionTurno = int(duracionTurno)
 
         #Esta lista se utiliza para solicitar el horario de todos los días de la semana
         dias = ["lunes","martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
@@ -348,17 +373,25 @@ def agregarProfesionales(profesionales, especialidades):
 
                 #Guardamos la hora de inicio y de fin del día
                 horarios[dia] = [horaInicio, horaFin]
+                #nuevo cantidad de sobreturnos 
+                cantidadSobreturnos = input("Ingrese la cantidad de sobreturnos permitidos: ")
+
+                while not cantidadSobreturnos.isdigit():
+                    print("Ingrese un número válido")
+                    cantidadSobreturnos = input("Ingrese nuevamente la cantidad: ")
+
+                cantidadSobreturnos = int(cantidadSobreturnos)
             else:
                 #Si no atiende, se guarda una lista vacía
                 horarios[dia] = []
-
         #Añadimos el profesional con todos sus datos y horarios.
         profesionales.append([
             legajo,
             nombre,
             especialidad,
             horarios,
-            duracionTurno
+            duracionTurno,
+            cantidadSobreturnos
         ])
 
         print("Profesional agregado correctamente")
@@ -374,11 +407,13 @@ def quitarProfesionales(profesionales, turnos):
 
     else:
         #Guardamos el profesional encontrado para eliminarlo después de terminar el recorrido
+
         profesionalesEliminar = []
 
         for profesional in profesionales:
             if profesional[0] == legajo:
                 profesionalesEliminar = profesional
+                break
 
         if profesionalesEliminar:
             #Eliminamoos de la lista el profesional encontrado
@@ -388,3 +423,223 @@ def quitarProfesionales(profesionales, turnos):
 
             print("No se encontró un profesional con el legajo ingresado.")
 
+
+# Busca el primer profesional de una especialidad que tenga disponible
+# una fecha y hora determinada
+def buscarPrimerProfesionalConTurnoLibre(profesionales, turnos, especialidad, dia, fecha, hora):
+
+    profesionalDisponible = None
+
+    for profesional in profesionales:
+
+        if profesional[2].lower() == especialidad.lower():
+
+            horarios = profesional[3]
+
+            if dia in horarios and horarios[dia]:
+
+                horaInicio = horarios[dia][0]
+                horaFin = horarios[dia][1]
+
+                partesInicio = horaInicio.split(":")
+                partesFin = horaFin.split(":")
+                partesHora = hora.split(":")
+
+                minutosInicio = int(partesInicio[0]) * 60 + int(partesInicio[1])
+                minutosFin = int(partesFin[0]) * 60 + int(partesFin[1])
+                minutosHora = int(partesHora[0]) * 60 + int(partesHora[1])
+
+                duracion = profesional[4]
+
+                # Comprobamos que el turno entre en el horario de atención
+                if (minutosInicio <= minutosHora and
+                    minutosHora + duracion <= minutosFin and
+                    (minutosHora - minutosInicio) % duracion == 0):
+
+                    ocupado = False
+
+                    for turno in turnos:
+
+                        if (turno[1] == profesional[0] and
+                            turno[2] == fecha and
+                            turno[3] == hora):
+
+                            ocupado = True
+                            break
+
+                    if not ocupado:
+                        profesionalDisponible = profesional
+                        break
+
+    return profesionalDisponible
+
+# Busca el primer turno disponible desde la fecha actual
+# considerando los horarios y los sobreturnos de cada profesional
+def buscarPrimerTurnoLibre(profesionales, turnos, especialidad, dni, turnoExcluir=None):
+
+    diasSemana = ["lunes", "martes", "miércoles", "jueves",
+                  "viernes", "sábado", "domingo"]
+
+    hayHorarios = False
+
+    for profesional in profesionales:
+        if profesional[2].lower() == especialidad.lower():
+            for dia in profesional[3]:
+                if profesional[3][dia]:
+                    hayHorarios = True
+
+    if not hayHorarios:
+        return None
+
+    fechaActual = datetime.now().date()
+    horaActual = datetime.now().hour * 60 + datetime.now().minute
+
+    while True:
+
+        diaSemana = diasSemana[fechaActual.weekday()]
+        fecha = fechaActual.strftime("%d/%m/%Y")
+
+        profesionalDisponible = None
+        horaDisponible = None
+        sobreTurnoDisponible = False
+        mejorHorario = 1440
+
+        for profesional in profesionales:
+
+            if profesional[2].lower() == especialidad.lower():
+
+                horarios = profesional[3]
+
+                if diaSemana in horarios and horarios[diaSemana]:
+
+                    horaInicio = horarios[diaSemana][0]
+                    horaFin = horarios[diaSemana][1]
+
+                    partesInicio = horaInicio.split(":")
+                    partesFin = horaFin.split(":")
+
+                    minutosInicio = int(partesInicio[0]) * 60 + int(partesInicio[1])
+                    minutosFin = int(partesFin[0]) * 60 + int(partesFin[1])
+
+                    duracion = profesional[4]
+
+                    # Buscamos primero dentro del horario habitual
+                    minutos = minutosInicio
+
+                    while minutos + duracion <= minutosFin:
+
+                        if fechaActual > datetime.now().date() or minutos > horaActual:
+
+                            hora = str(minutos // 60).zfill(2) + ":" + str(minutos % 60).zfill(2)
+
+                            ocupado = False
+
+                            # Evitamos ofrecer nuevamente el mismo turno que se está reprogramando
+                            if turnoExcluir is not None and turnoExcluir[2] == fecha and turnoExcluir[3] == hora:
+                                ocupado = True
+
+                            for turno in turnos:
+                                if turno is not turnoExcluir and ((turno[1] == profesional[0] or turno[0] == dni)
+                                    and turno[2] == fecha
+                                    and turno[3] == hora):
+                                    ocupado = True
+                                    break
+
+                            if not ocupado and minutos < mejorHorario:
+                                mejorHorario = minutos
+                                profesionalDisponible = profesional
+                                horaDisponible = hora
+                                sobreTurnoDisponible = False
+
+                        minutos += duracion
+
+                    # Si no hay lugar en el horario habitual, buscamos sobreturnos
+                    for numero in range(profesional[5]):
+
+                        minutos = minutosFin + numero * duracion
+
+                        if minutos + duracion <= 1440:
+
+                            if fechaActual > datetime.now().date() or minutos > horaActual:
+
+                                hora = str(minutos // 60).zfill(2) + ":" + str(minutos % 60).zfill(2)
+
+                                ocupado = False
+
+                                if turnoExcluir is not None and turnoExcluir[2] == fecha and turnoExcluir[3] == hora:
+                                    ocupado = True
+
+                                for turno in turnos:
+                                    if turno is not turnoExcluir and ((turno[1] == profesional[0] or turno[0] == dni)
+                                        and turno[2] == fecha
+                                        and turno[3] == hora):
+                                        ocupado = True
+                                        break
+
+                                if not ocupado and minutos < mejorHorario:
+                                    mejorHorario = minutos
+                                    profesionalDisponible = profesional
+                                    horaDisponible = hora
+                                    sobreTurnoDisponible = True
+
+        if profesionalDisponible is not None:
+            return (profesionalDisponible, fecha, horaDisponible, sobreTurnoDisponible)
+
+        fechaActual = fechaActual + timedelta(days=1)
+# Busca un profesional disponible para una fecha y hora seleccionadas
+def buscarProfesionalParaFechaHora(profesionales, turnos, especialidad, dni, dia, fecha, hora, turnoExcluir=None):
+
+    partesHora = hora.split(":")
+    minutosHora = int(partesHora[0]) * 60 + int(partesHora[1])
+
+    for profesional in profesionales:
+
+        if profesional[2].lower() == especialidad.lower():
+
+            horarios = profesional[3]
+
+            if dia in horarios and horarios[dia]:
+
+                partesInicio = horarios[dia][0].split(":")
+                partesFin = horarios[dia][1].split(":")
+
+                minutosInicio = int(partesInicio[0]) * 60 + int(partesInicio[1])
+                minutosFin = int(partesFin[0]) * 60 + int(partesFin[1])
+
+                duracion = profesional[4]
+                horarioValido = False
+
+                # Comprobamos si pertenece al horario habitual
+                if (minutosInicio <= minutosHora and
+                    minutosHora + duracion <= minutosFin and
+                    (minutosHora - minutosInicio) % duracion == 0):
+
+                    horarioValido = True
+
+                # Comprobamos si corresponde a un sobreturno
+                for numero in range(profesional[5]):
+
+                    if minutosHora == minutosFin + numero * duracion:
+                        horarioValido = True
+
+                if horarioValido:
+
+                    ocupado = False
+
+                    # Evitamos seleccionar nuevamente el mismo turno original
+                    if turnoExcluir is not None and turnoExcluir[2] == fecha and turnoExcluir[3] == hora:
+                        ocupado = True
+
+                    for turno in turnos:
+
+                        if turno is not turnoExcluir and ((turno[1] == profesional[0] or turno[0] == dni)
+                            and turno[2] == fecha
+                            and turno[3] == hora):
+
+                            ocupado = True
+                            break
+
+                    if not ocupado:
+                        return profesional
+
+    return None

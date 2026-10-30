@@ -1,89 +1,64 @@
 
-#Comprobamos que el dni tenga siete u ocho dígitos
 def validarDni(dni):
-    dniValido = False
+    return (len(dni) == 7 or len(dni) == 8) and dni.isdigit()
 
-    if (len(dni) == 7 or len(dni) == 8) and dni.isdigit():
-        dniValido = True
 
-    return dniValido
+def buscarPacientePorDNI(pacientes, dni):
+    return pacientes.get(dni, None)
 
-#Buscamos un paciente utilizando su legajo como clave del diccionario
-def buscarPacientePorLegajo(pacientes, legajo):
-    pacienteEncontrado = pacientes.get(legajo)
 
-    return pacienteEncontrado
 
-#Comprobamos que el dni no pertenezca a otro paciente
-def dniRegistrado(pacientes, dni):
-    registrado = False
-
-    for legajo in pacientes:
-        if pacientes[legajo]["dni"] == dni:
-            registrado = True
-
-    return registrado
-
-#Registramos un paciente si su legajo y su dni no están repetidos
 def registrarPaciente(pacientes):
-    legajo = input("Ingrese el legajo del paciente: ")
+    dni = input("Ingrese el DNI del paciente: ")
 
-    pacienteEncontrado = buscarPacientePorLegajo(pacientes, legajo)
+    while not validarDni(dni):
+        print("DNI no válido")
+        dni = input("Ingrese nuevamente el DNI del paciente: ")
 
-    if pacienteEncontrado is not None:
-        print("ya existe un paciente con ese legajo")
-    else:
-        dni = input("Ingrese el DNI del paciente: ")
+    if buscarPacientePorDNI(pacientes, dni) is not None:
+        print("Ya existe un paciente con ese DNI")
+        return
 
-        while not validarDni(dni):
-            print("DNI no válido")
-            dni = input("Ingrese nuevamente el DNI del paciente: ")
+    nombre = input("Ingrese el nombre del paciente: ")
+    apellido = input("Ingrese el apellido del paciente: ")
 
-        while dniRegistrado(pacientes, dni):
-            print("Ya existe un paciente con ese DNI")
-            dni = input("Ingrese otro DNI: ")
+    pacientes[dni] = {
+        "dni": dni,
+        "nombre": nombre,
+        "apellido": apellido
+    }
 
-            while not validarDni(dni):
-                print("DNI no válido")
-                dni = input("Ingrese nuevamente el DNI: ")
+    print("Paciente registrado correctamente")
 
-        nombre = input("Ingrese el nombre del paciente: ")
-        apellido = input("Ingrese el apellido del paciente: ")
 
-        pacientes[legajo] = {"dni": dni, "nombre": nombre, "apellido": apellido}
 
-        print("Paciente registrado correctamente")
-
-#Mostramos todos los pacientes registrados
 def listarPacientes(pacientes):
     if not pacientes:
         print("No hay pacientes registrados")
     else:
         print("Pacientes registrados:")
 
-        for legajo in pacientes:
-            print("Legajo: " + legajo)
-            print("DNI: " + pacientes[legajo]["dni"])
-            print("Nombre: " + pacientes[legajo]["nombre"])
-            print("Apellido: " + pacientes[legajo]["apellido"])
+        for dni in pacientes:
+            print("DNI: " + pacientes[dni]["dni"])
+            print("Nombre: " + pacientes[dni]["nombre"])
+            print("Apellido: " + pacientes[dni]["apellido"])
             print()
 
 
-#Busca y muestra los datos de un paciente por su legajo
-def mostrarPacientePorLegajo(pacientes):
-    legajo = input("Ingrese el legajo del paciente: ")
+def mostrarPacientePorDNI(pacientes):
+    dni = input("Ingrese el DNI del paciente que desea buscar: ")
 
-    pacienteEncontrado = buscarPacientePorLegajo(pacientes, legajo)
+    paciente = buscarPacientePorDNI(pacientes, dni)
 
-    if pacienteEncontrado is None:
-        print("No hay pacientes registrados con ese legajo")
+    if paciente is None:
+        print("No se encontró ningún paciente con ese DNI")
     else:
-        print("Legajo: " + legajo)
-        print("DNI: " + pacienteEncontrado["dni"])
-        print("Nombre: " + pacienteEncontrado["nombre"])
-        print("Apellido: " + pacienteEncontrado["apellido"])
+        print("Paciente encontrado:")
+        print("DNI: " + paciente["dni"])
+        print("Nombre: " + paciente["nombre"])
+        print("Apellido: " + paciente["apellido"])
 
-#Mostramos las opciones disponibles para gestionar pacientes
+
 def menu(pacientes):
     eleccion = 0
 
@@ -92,11 +67,11 @@ def menu(pacientes):
             "Gestión de pacientes, ingrese: \n"
             "1 para registrar un paciente. \n"
             "2 para listar los pacientes. \n"
-            "3 para buscar un paciente por legajo. \n"
+            "3 para buscar un paciente por DNI. \n"
             "4 para volver al menú principal. \n"
         )
 
-        while not eleccion.isdigit():
+        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 4:
             print("Opción incorrecta.")
             eleccion = input("Ingrese una opción entre 1 y 4: ")
 
@@ -108,8 +83,6 @@ def menu(pacientes):
             case 2:
                 listarPacientes(pacientes)
             case 3:
-                mostrarPacientePorLegajo(pacientes)
+                mostrarPacientePorDNI(pacientes)
             case 4:
                 print("Volviendo al menú principal")
-            case _:
-                print("Opción incorrecta")

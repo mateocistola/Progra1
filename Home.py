@@ -27,7 +27,7 @@ def menuPrincipal(profesionales, pacientes, turnos, especialidades):
             case 1:
                 Turnero.darTurno(profesionales,pacientes, turnos, especialidades)
             case 2:
-                Turnero.reprogramarTurno(profesionales, turnos)
+                Turnero.reprogramarTurno(profesionales, turnos, especialidades)
             case 3:
                 Turnero.cancelarTurno(turnos)
             case 4:
@@ -57,7 +57,7 @@ def main():
           "jueves": ["15:00", "19:00"],
           "viernes": ["09:00", "13:00"],
           "sábado": [],
-          "domingo": []}, 20 #Duración de cada turno
+          "domingo": []}, 20, 0 #Duración de cada turno
         ],
         ["2", "Gomez, Alejandra", "Clínica Medica",
          {
@@ -68,7 +68,7 @@ def main():
              "viernes":["14:00","18:00"],
              "sábado":[],
              "domingo":[]
-         }, 20 #Duración de cada turno
+         }, 20,0 #Duración de cada turno
         ],
         ["3", "Lopez, Eduardo", "Traumatología",
          {"lunes": ["10:00","14:00"],
@@ -78,7 +78,7 @@ def main():
           "viernes":["10:00","14:00"],
           "sábado":[],
           "domingo":[]
-          }, 20 #Duración de cada turno
+          }, 20, 0 
         ]  # incluimos profesionales de prueba
     ]
 
