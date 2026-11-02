@@ -118,6 +118,24 @@ def mostrarProfesionales(profesionales):
 
         print()
 
+def mostrarProfesionalesDelDia(profesionales):
+    diasSemana = ["lunes", "martes", "miércoles", "jueves",
+                  "viernes", "sábado", "domingo"]
+
+    diaActual = diasSemana[datetime.now().weekday()]
+
+    print("Los profesionales que atienden hoy (" + diaActual + ") son:")
+
+    for profesional in profesionales:
+
+        horarios = profesional[3]
+
+        if diaActual in horarios and horarios[diaActual]:
+            print("Legajo: " + profesional[0])
+            print("Nombre: " + profesional[1])
+            print("Especialidad: " + profesional[2])
+            print("Duración de cada turno: " + str(profesional[4]) + " minutos")
+            print()
 
 #Solicita un legajo, busca el profesional de forma recursiva y muestra sus datos y horarios si existe
 def mostrarProfesionalPorLegajo(profesionales):
@@ -643,3 +661,23 @@ def buscarProfesionalParaFechaHora(profesionales, turnos, especialidad, dni, dia
                         return profesional
 
     return None
+
+def listarTurnosDelDia(profesionales, turnos, especialidades):
+    fechaActual = datetime.now().date()
+    fecha = fechaActual.strftime("%d/%m/%Y")
+    mostrarProfesionalesDelDia(profesionales)
+    legajo = input("Ingrese el legajo del profesional para listar sus turnos de hoy: ")
+    print("Turnos del día " + fecha + ", para profesional con legajo id " + legajo + ":")
+    turnosDelDia = []
+
+    for turno in turnos:
+        if turno[2] == fecha:
+            turnosDelDia.append(turno)
+
+    if not turnosDelDia:
+        print("No hay turnos programados para hoy.")
+    else:
+        for turno in turnosDelDia:
+            profesional = buscarProfesionalPorLegajo(profesionales, turno[1])
+            print("Paciente: " + turno[0] + ", Profesional: " + profesional[1] +
+                  ", Especialidad: " + profesional[2] + ", Hora: " + turno[3])

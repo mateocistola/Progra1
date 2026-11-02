@@ -12,15 +12,17 @@ def menuPrincipal(profesionales, pacientes, turnos, especialidades):
             " 1 para dar turnos. \n"
             " 2 para reprogramar un turno. \n"
             " 3 para cancelar un turno. \n"
-            " 4 para listar todos los turnos en sistema. \n"
-            " 5 para menú de profesionales. \n"
-            " 6 para el menú de pacientes. \n"
-            " 7 para el menú de especialidades. \n"
-            " 8 para salir. \n"
+            " 4 para listar todos los turnos historicos del sistema. \n"
+            " 5 para listar los turnos del día un profesional. (planilla que se entrega al medico al inicio de atencion)\n"
+            " 6 para listar los turnos historicos de un paciente en particular. \n"
+            " 7 para menú de profesionales. \n"
+            " 8 para el menú de pacientes. \n"
+            " 9 para el menú de especialidades. \n"
+            " 10 para salir. \n"
         )
         while not eleccion.isdigit():
             print("Opción incorrecta.")
-            eleccion = input("Ingrese una opción entre 1 y 8:"
+            eleccion = input("Ingrese una opción entre 1 y 10:"
             )
         eleccion = int(eleccion)
         match eleccion:
@@ -33,12 +35,16 @@ def menuPrincipal(profesionales, pacientes, turnos, especialidades):
             case 4:
                 Turnero.listarTodosLosTurnos(turnos)
             case 5:
-                Profesionales.menu(profesionales, turnos, especialidades)
+                Profesionales.listarTurnosDelDia(profesionales, turnos, especialidades)
             case 6:
-                Pacientes.menu(pacientes)
+                Turnero.listarTurnosDePaciente(pacientes, turnos)
             case 7:
-                Especialidades.menu(especialidades, profesionales)
+                Profesionales.menu(profesionales, turnos, especialidades)
             case 8:
+                Pacientes.menu(pacientes)
+            case 9:
+                Especialidades.menu(especialidades, profesionales)
+            case 10:
                 print("Saliendo...")
             case _:
                 print("Opción incorrecta.")
@@ -84,8 +90,19 @@ def main():
 
     especialidades = ["Cardiología", "Clínica Medica", "Traumatología"]
 
-    #Los pacientes se guardan en un diccionario utilizando el legajo como clave
-    pacientes = {}
+    #Los pacientes se guardan en un diccionario utilizando el dni como clave
+    pacientes = {
+        "12345678": {
+            "nombre": "Juan",
+            "apellido": "Pérez",
+            "cobertura": "Particular"
+        },
+        "88888888": {
+            "nombre": "María",
+            "apellido": "González",
+            "cobertura": "OSDE"
+        }
+    }
     #Cada turno guarda el legajo del paciente, el legajo del profesional, la fecha y la hora
     turnos = []
 

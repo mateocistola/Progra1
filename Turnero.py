@@ -189,7 +189,8 @@ def darTurno(profesionales, pacientes, turnos, especialidades):
         dni = input("Ingrese nuevamente el DNI del paciente: ")
 
         pacienteEncontrado = Pacientes.buscarPacientePorDNI(pacientes, dni)
-
+    print ("Bienvenido ")
+    Pacientes.mostrarPacientePorDNI(pacientes)
     # Buscamos el primer turno disponible desde la fecha actual
     resultado = Profesionales.buscarPrimerTurnoLibre(
         profesionalesEspecialidad, turnos, especialidad, dni
@@ -449,9 +450,9 @@ def cancelarTurno(turnos):
             turnosPaciente.append(turno)
 
     if not turnosPaciente:
-        print("No hay turnos registrados en el sistema para el legajo. \n" + legajoPaciente)
+        print("No hay turnos registrados en el sistema para el DNI: \n" + dniPaciente)
     else:
-        print("Estos son los turnos del paciente \n")
+        print("Estos son los turnos del paciente con DNI: " + dniPaciente + "\n")
 
         for posicion in range(len(turnosPaciente)):
             print("Turno", posicion + 1)
@@ -491,4 +492,32 @@ def listarTodosLosTurnos(turnos):
             print("Legajo del profesional: " + turno[1])
             print("Fecha: " + turno[2])
             print("Hora: " + turno[3])
+            print()
+
+def listarTurnosDePaciente(pacientes, turnos):
+    turnosPaciente = []
+
+    dniPaciente = input("Ingrese el DNI del paciente: ") 
+
+    paciente = Pacientes.buscarPacientePorDNI(pacientes, dniPaciente)
+
+    if paciente is None:
+        print("No existe un paciente registrado con ese DNI")
+        return
+
+    for turno in turnos:
+        if turno[0] == dniPaciente:
+            turnosPaciente.append(turno)
+
+    if not turnosPaciente:
+        print("No hay turnos registrados en el sistema para el paciente con DNI: " + dniPaciente)
+
+    else:
+        print("Estos son los turnos del paciente con DNI: " + dniPaciente + "\n")
+
+        for posicion in range(len(turnosPaciente)):
+            print("Turno", posicion + 1)
+            print("Legajo del profesional: " + turnosPaciente[posicion][1])
+            print("Fecha: " + turnosPaciente[posicion][2])
+            print("Hora: " + turnosPaciente[posicion][3])
             print()

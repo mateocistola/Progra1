@@ -7,7 +7,6 @@ def buscarPacientePorDNI(pacientes, dni):
     return pacientes.get(dni, None)
 
 
-
 def registrarPaciente(pacientes):
     dni = input("Ingrese el DNI del paciente: ")
 
@@ -21,11 +20,11 @@ def registrarPaciente(pacientes):
 
     nombre = input("Ingrese el nombre del paciente: ")
     apellido = input("Ingrese el apellido del paciente: ")
-
+    cobertura = input("Ingrese la cobertura del paciente (deje en blanco para Particular): ")
     pacientes[dni] = {
-        "dni": dni,
         "nombre": nombre,
-        "apellido": apellido
+        "apellido": apellido,
+        "cobertura": cobertura if cobertura else "Particular"
     }
 
     print("Paciente registrado correctamente")
@@ -39,9 +38,10 @@ def listarPacientes(pacientes):
         print("Pacientes registrados:")
 
         for dni in pacientes:
-            print("DNI: " + pacientes[dni]["dni"])
+            print("DNI: " + dni)
             print("Nombre: " + pacientes[dni]["nombre"])
             print("Apellido: " + pacientes[dni]["apellido"])
+            print("Cobertura: " + pacientes[dni]["cobertura"])
             print()
 
 
@@ -54,10 +54,41 @@ def mostrarPacientePorDNI(pacientes):
         print("No se encontró ningún paciente con ese DNI")
     else:
         print("Paciente encontrado:")
-        print("DNI: " + paciente["dni"])
+        print("DNI: " + dni)
         print("Nombre: " + paciente["nombre"])
         print("Apellido: " + paciente["apellido"])
+        print("Cobertura: " + paciente["cobertura"])
 
+def eliminarPaciente(pacientes):
+    dni = input("Ingrese el DNI del paciente que desea eliminar: ")
+
+    paciente = buscarPacientePorDNI(pacientes, dni)
+
+    if paciente is None:
+        print("No se encontró ningún paciente con ese DNI")
+    else:
+        del pacientes[dni]
+        print("Paciente eliminado correctamente")
+
+def modificarPaciente(pacientes):
+    dni = input("Ingrese el DNI del paciente que desea modificar: ")
+
+    paciente = buscarPacientePorDNI(pacientes, dni)
+
+    if paciente is None:
+        print("No se encontró ningún paciente con ese DNI")
+    else:
+        nombre = input("Ingrese el nuevo nombre del paciente (deje vacío para no modificar): ")
+        apellido = input("Ingrese el nuevo apellido del paciente (deje vacío para no modificar): ")
+        cobertura = input("Ingrese la nueva cobertura del paciente (deje vacío para no modificar): ")
+        if nombre:
+            paciente["nombre"] = nombre
+        if apellido:
+            paciente["apellido"] = apellido
+        if cobertura:
+            paciente["cobertura"] = cobertura
+
+        print("Paciente modificado correctamente")
 
 def menu(pacientes):
     eleccion = 0
@@ -68,7 +99,9 @@ def menu(pacientes):
             "1 para registrar un paciente. \n"
             "2 para listar los pacientes. \n"
             "3 para buscar un paciente por DNI. \n"
-            "4 para volver al menú principal. \n"
+            "4 para modificar un paciente. \n"
+            "5 para eliminar un paciente. \n"
+            "6 para volver al menú principal. \n"
         )
 
         while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 4:
@@ -85,4 +118,8 @@ def menu(pacientes):
             case 3:
                 mostrarPacientePorDNI(pacientes)
             case 4:
+                modificarPaciente(pacientes)
+            case 5:
+                eliminarPaciente(pacientes)
+            case 6:
                 print("Volviendo al menú principal")
