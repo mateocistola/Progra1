@@ -1,120 +1,164 @@
-#Comprueba si una especialidad ya está registrada
+import json
+
+
+ARCHIVO_ESPECIALIDADES = "especialidades.json"
+ESPECIALIDADES_INICIALES = [
+    "Cardiología",
+    "Clínica Medica",
+    "Traumatología"
+]
+
+
+def cargarEspecialidades():
+    try:
+        archivo = open(ARCHIVO_ESPECIALIDADES, "rt", encoding="utf-8")
+        especialidades = json.load(archivo)
+        archivo.close()
+
+        if not isinstance(especialidades, list):
+            raise ValueError("El archivo de especialidades debe contener una lista.")
+
+        return especialidades
+
+    except FileNotFoundError:
+        especialidades = ESPECIALIDADES_INICIALES.copy()
+        guardarEspecialidades(especialidades)
+        return especialidades
+    except (OSError, json.JSONDecodeError, ValueError) as mensaje:
+        print("No se pudieron cargar las especialidades:", mensaje)
+        return []
+
+
+def guardarEspecialidades(especialidades):
+    archivo = None
+    guardado = False
+
+    try:
+        archivo = open(ARCHIVO_ESPECIALIDADES, "wt", encoding="utf-8")
+        json.dump(especialidades, archivo, ensure_ascii=False, indent=4)
+        guardado = True
+    except OSError as mensaje:
+        print("No se pudieron guardar las especialidades:", mensaje)
+    finally:
+        if archivo is not None:
+            archivo.close()
+
+    return guardado
+
 
 def especialidadRegistrada(especialidades, nombre):
     registrada = False
 
     for especialidad in especialidades:
-        #Convertimos ambos nombres a minúsculas para comparar sin distinguir entre mayúsculas y minúsculas
         if especialidad.lower() == nombre.lower():
             registrada = True
 
     return registrada
 
 
-#Muestra todas las especialidades registradas.
-
 def listarEspecialidades(especialidades):
     if not especialidades:
         print("No hay especialidades registradas")
     else:
-        print("Ya hay especialidades registradas")
+        print("Especialidades registradas:")
 
         for posicion in range(len(especialidades)):
             print(str(posicion + 1) + ". " + especialidades[posicion])
 
 
-#Agrega una especialidad si el nombre no está vacío y todavía no se encuentra registrado.
-
 def agregarEspecialidad(especialidades):
-    nombre = input("Ingrese el nombre de la especialidad: ")
+    nombre = input("Ingrese el nombre de la especialidad: ").strip()
 
     while nombre == "":
         print("El nombre no puede estar vacío")
-        nombre = input("Ingrese nuevamente el nombre de la especialidad: ")
+        nombre = input("Ingrese nuevamente el nombre de la especialidad: ").strip()
 
     if especialidadRegistrada(especialidades, nombre):
         print("La especialidad ya está registrada")
-    else:
-        especialidades.append(nombre)
-        print("Especialidad registrada correctamente")
+        return False
 
-#Modifica una especialidad y actualiza a los profesionales que la tengan asignada
+    especialidades.append(nombre)
+    print("Especialidad registrada correctamente")
+    return True
 
-def modificarEspecialidad(especialidades, profesionales):
+
+def modificarEspecialidad(especialidades):
     if not especialidades:
         print("No hay especialidades registradas")
-        return
+        return False
 
     listarEspecialidades(especialidades)
-
-    nombreActual = input("Ingrese el nombre de la especialidad que desea cambiar: ")
-
+    nombreActual = input("Ingrese el nombre de la especialidad que desea cambiar: ").strip()
     especialidadEncontrada = ""
 
     for especialidad in especialidades:
         if especialidad.lower() == nombreActual.lower():
             especialidadEncontrada = especialidad
+            break
 
     if especialidadEncontrada == "":
         print("No se encontró la especialidad ingresada")
-    else:
-        nombreNuevo = input("Ingrese el nuevo nombre de la especialidad: ")
+        return False
 
-        while nombreNuevo == "":
-            print("El nombre no puede estar vacío")
-            nombreNuevo = input("Ingrese nuevamente el nombre: ")
+    nombreNuevo = input("Ingrese el nuevo nombre de la especialidad: ").strip()
 
-        if (especialidadRegistrada(especialidades, nombreNuevo) and nombreNuevo.lower() != especialidadEncontrada.lower()):
-            print("Ya existe otra especialidad con ese nombre")
-        else:
-            #Modificamos el nombre de la lista de especialidades
-            for posicion in range(len(especialidades)):
-                if(especialidades[posicion].lower() == especialidadEncontrada.lower()):
-                    especialidades[posicion] = nombreNuevo
+    while nombreNuevo == "":
+        print("El nombre no puede estar vacío")
+        nombreNuevo = input("Ingrese nuevamente el nombre: ").strip()
 
-            #Actualizamos también a los profesionales que tenían asignada la especialidad anterior.
-            for profesional in profesionales:
-                if(profesional[2].lower() == especialidadEncontrada.lower()):
-                    profesional[2] = nombreNuevo
+    if (especialidadRegistrada(especialidades, nombreNuevo)
+            and nombreNuevo.lower() != especialidadEncontrada.lower()):
+        print("Ya existe otra especialidad con ese nombre")
+        return False
 
-            print("Especialidad modificada correctamente")
+    # Se actualizan primero los profesionales para evitar cambiar el JSON
+    # si no se pudo reescribir el archivo de profesionales.
+    import Profesionales
+
+    if not Profesionales.actualizarEspecialidadProfesionales(
+            especialidadEncontrada, nombreNuevo):
+        print("No se pudo actualizar la especialidad en los profesionales.")
+        return False
+
+    posicion = especialidades.index(especialidadEncontrada)
+    especialidades[posicion] = nombreNuevo
+    print("Especialidad modificada correctamente")
+    return True
 
 
-#Comprobar si una especialidad está asignada a algún profesional
+def especialidadAsignada(nombre):
+    import Profesionales
+    return Profesionales.existeProfesionalPorEspecialidad(nombre)
 
-def especialidadAsignada(profesionales, nombre):
-    asignada = False
-    for profesional in profesionales:
-        if profesional[2].lower() == nombre.lower():
-            asignada = True
 
-    return asignada
-
-#Elimina una especialidad si no está asignada a ningún profesional
-def quitarEspecialidad(especialidades, profesionales):
+def quitarEspecialidad(especialidades):
     if not especialidades:
         print("No hay especialidades registradas")
-        return
+        return False
 
     listarEspecialidades(especialidades)
-
-    nombre = input("Ingrese el nombre de la especialidad que desea eliminar: ")
+    nombre = input("Ingrese el nombre de la especialidad que desea eliminar: ").strip()
     especialidadEncontrada = ""
+
     for especialidad in especialidades:
         if especialidad.lower() == nombre.lower():
             especialidadEncontrada = especialidad
+            break
+
     if especialidadEncontrada == "":
         print("No se encontró la especialidad ingresada")
+        return False
 
-    elif especialidadAsignada(profesionales, especialidadEncontrada):
+    if especialidadAsignada(especialidadEncontrada):
         print("No se puede eliminar la especialidad porque está asignada a uno o más profesionales")
-    else:
-        especialidades.remove(especialidadEncontrada)
-        print("Especialidad eliminada correctamente")
+        return False
 
-#Permite gestionar las especialidades registradas en el sistema
+    especialidades.remove(especialidadEncontrada)
+    print("Especialidad eliminada correctamente")
+    return True
 
-def menu(especialidades, profesionales):
+
+def menu():
     eleccion = 0
 
     while eleccion != 5:
@@ -126,21 +170,28 @@ def menu(especialidades, profesionales):
             "4 para eliminar una especialidad. \n"
             "5 para volver al menú principal. \n"
         )
-        while not eleccion.isdigit():
+
+        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 5:
             print("Opción incorrecta.")
             eleccion = input("Ingrese una opción entre el 1 y 5: ")
+
         eleccion = int(eleccion)
+        especialidades = cargarEspecialidades()
 
         match eleccion:
             case 1:
-                agregarEspecialidad(especialidades)
+                cambio = agregarEspecialidad(especialidades)
+                if cambio:
+                    guardarEspecialidades(especialidades)
             case 2:
                 listarEspecialidades(especialidades)
             case 3:
-                modificarEspecialidad(especialidades, profesionales)
+                cambio = modificarEspecialidad(especialidades)
+                if cambio:
+                    guardarEspecialidades(especialidades)
             case 4:
-                quitarEspecialidad(especialidades, profesionales)
+                cambio = quitarEspecialidad(especialidades)
+                if cambio:
+                    guardarEspecialidades(especialidades)
             case 5:
                 print("Volviendo al menú principal")
-            case _:
-                print("Opción incorrecta.")
