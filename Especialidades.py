@@ -1,12 +1,8 @@
+
 import json
 
 
 ARCHIVO_ESPECIALIDADES = "especialidades.json"
-ESPECIALIDADES_INICIALES = [
-    "Cardiología",
-    "Clínica Medica",
-    "Traumatología"
-]
 
 
 def cargarEspecialidades():
@@ -18,12 +14,21 @@ def cargarEspecialidades():
         if not isinstance(especialidades, list):
             raise ValueError("El archivo de especialidades debe contener una lista.")
 
+        for especialidad in especialidades:
+            if not isinstance(especialidad, str) or especialidad.strip() == "":
+                raise ValueError("El archivo contiene especialidades inválidas.")
+
         return especialidades
 
     except FileNotFoundError:
-        especialidades = ESPECIALIDADES_INICIALES.copy()
+        especialidades = [
+            "Cardiología",
+            "Clínica Médica",
+            "Traumatología"
+        ]
         guardarEspecialidades(especialidades)
         return especialidades
+
     except (OSError, json.JSONDecodeError, ValueError) as mensaje:
         print("No se pudieron cargar las especialidades:", mensaje)
         return []
@@ -37,8 +42,10 @@ def guardarEspecialidades(especialidades):
         archivo = open(ARCHIVO_ESPECIALIDADES, "wt", encoding="utf-8")
         json.dump(especialidades, archivo, ensure_ascii=False, indent=4)
         guardado = True
+
     except OSError as mensaje:
         print("No se pudieron guardar las especialidades:", mensaje)
+
     finally:
         if archivo is not None:
             archivo.close()
@@ -46,14 +53,21 @@ def guardarEspecialidades(especialidades):
     return guardado
 
 
+# Busca una especialidad utilizando recursividad.
+# Devuelve su posición o -1 si no existe.
+def buscarPosicionEspecialidad(especialidades, nombre, posicion=0):
+    if posicion >= len(especialidades):
+        return -1
+
+    if especialidades[posicion].lower() == nombre.lower():
+        return posicion
+
+    return buscarPosicionEspecialidad(especialidades, nombre, posicion + 1)
+
+
 def especialidadRegistrada(especialidades, nombre):
-    registrada = False
-
-    for especialidad in especialidades:
-        if especialidad.lower() == nombre.lower():
-            registrada = True
-
-    return registrada
+    posicion = buscarPosicionEspecialidad(especialidades, nombre)
+    return posicion != -1
 
 
 def listarEspecialidades(especialidades):
@@ -88,15 +102,14 @@ def modificarEspecialidad(especialidades):
         return False
 
     listarEspecialidades(especialidades)
-    nombreActual = input("Ingrese el nombre de la especialidad que desea cambiar: ").strip()
-    especialidadEncontrada = ""
 
-    for especialidad in especialidades:
-        if especialidad.lower() == nombreActual.lower():
-            especialidadEncontrada = especialidad
-            break
+    nombreActual = input(
+        "Ingrese el nombre de la especialidad que desea cambiar: "
+    ).strip()
 
-    if especialidadEncontrada == "":
+    posicion = buscarPosicionEspecialidad(especialidades, nombreActual)
+
+    if posicion == -1:
         print("No se encontró la especialidad ingresada")
         return False
 
@@ -107,20 +120,21 @@ def modificarEspecialidad(especialidades):
         nombreNuevo = input("Ingrese nuevamente el nombre: ").strip()
 
     if (especialidadRegistrada(especialidades, nombreNuevo)
-            and nombreNuevo.lower() != especialidadEncontrada.lower()):
+            and nombreNuevo.lower() != especialidades[posicion].lower()):
         print("Ya existe otra especialidad con ese nombre")
         return False
+
+    especialidadAnterior = especialidades[posicion]
 
     # Se actualizan primero los profesionales para evitar cambiar el JSON
     # si no se pudo reescribir el archivo de profesionales.
     import Profesionales
 
     if not Profesionales.actualizarEspecialidadProfesionales(
-            especialidadEncontrada, nombreNuevo):
+            especialidadAnterior, nombreNuevo):
         print("No se pudo actualizar la especialidad en los profesionales.")
         return False
 
-    posicion = especialidades.index(especialidadEncontrada)
     especialidades[posicion] = nombreNuevo
     print("Especialidad modificada correctamente")
     return True
@@ -137,23 +151,24 @@ def quitarEspecialidad(especialidades):
         return False
 
     listarEspecialidades(especialidades)
-    nombre = input("Ingrese el nombre de la especialidad que desea eliminar: ").strip()
-    especialidadEncontrada = ""
 
-    for especialidad in especialidades:
-        if especialidad.lower() == nombre.lower():
-            especialidadEncontrada = especialidad
-            break
+    nombre = input(
+        "Ingrese el nombre de la especialidad que desea eliminar: "
+    ).strip()
 
-    if especialidadEncontrada == "":
+    posicion = buscarPosicionEspecialidad(especialidades, nombre)
+
+    if posicion == -1:
         print("No se encontró la especialidad ingresada")
         return False
+
+    especialidadEncontrada = especialidades[posicion]
 
     if especialidadAsignada(especialidadEncontrada):
         print("No se puede eliminar la especialidad porque está asignada a uno o más profesionales")
         return False
 
-    especialidades.remove(especialidadEncontrada)
+    especialidades.pop(posicion)
     print("Especialidad eliminada correctamente")
     return True
 
@@ -183,15 +198,20 @@ def menu():
                 cambio = agregarEspecialidad(especialidades)
                 if cambio:
                     guardarEspecialidades(especialidades)
+
             case 2:
                 listarEspecialidades(especialidades)
+
             case 3:
                 cambio = modificarEspecialidad(especialidades)
                 if cambio:
                     guardarEspecialidades(especialidades)
+
             case 4:
                 cambio = quitarEspecialidad(especialidades)
                 if cambio:
                     guardarEspecialidades(especialidades)
+
             case 5:
                 print("Volviendo al menú principal")
+
