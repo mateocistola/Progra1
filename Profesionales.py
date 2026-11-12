@@ -1,3 +1,4 @@
+
 import os
 from datetime import datetime, timedelta
 import Especialidades
@@ -7,33 +8,75 @@ ARCHIVO_PROFESIONALES = "profesionales.txt"
 ARCHIVO_TURNOS = "turnos.txt"
 ARCHIVO_AUXILIAR = "profesionales_aux.txt"
 
-diasSemana = [
-    "lunes", "martes", "miércoles", "jueves",
-    "viernes", "sábado", "domingo"
-]
+
+def obtenerDiasSemana():
+    return [
+        "lunes", "martes", "miércoles", "jueves",
+        "viernes", "sábado", "domingo"
+    ]
+
+
+def validarTexto(texto):
+    return texto.strip() != "" and ";" not in texto and "\n" not in texto
 
 
 # Convierte una línea del archivo en un único profesional.
+# Acepta el formato anterior de 19 campos y el nuevo de 33.
 # Estructura: [legajo, nombre, especialidad, horarios, duracion, sobreturnos]
 def convertirProfesional(linea):
     datos = linea.rstrip("\n").split(";")
 
-    if len(datos) != 19:
-        raise ValueError("El registro del profesional no tiene 19 campos")
+    if len(datos) != 19 and len(datos) != 33:
+        raise ValueError("El registro del profesional tiene una cantidad incorrecta de campos.")
 
     horarios = {}
+    diasSemana = obtenerDiasSemana()
     posicion = 5
 
     for dia in diasSemana:
-        horaInicio = datos[posicion]
-        horaFin = datos[posicion + 1]
+        if len(datos) == 19:
+            horaInicio = datos[posicion]
+            horaFin = datos[posicion + 1]
 
-        if horaInicio == "-" and horaFin == "-":
-            horarios[dia] = []
+            if horaInicio == "-" and horaFin == "-":
+                horarios[dia] = []
+            elif validarRangoHorario(horaInicio, horaFin):
+                horarios[dia] = [[horaInicio, horaFin]]
+            else:
+                raise ValueError("El horario de un profesional es inválido.")
+
+            posicion += 2
+
         else:
-            horarios[dia] = [horaInicio, horaFin]
+            horaInicio1 = datos[posicion]
+            horaFin1 = datos[posicion + 1]
+            horaInicio2 = datos[posicion + 2]
+            horaFin2 = datos[posicion + 3]
 
-        posicion += 2
+            intervalos = []
+
+            if horaInicio1 != "-" and horaFin1 != "-":
+                if validarRangoHorario(horaInicio1, horaFin1):
+                    intervalos.append([horaInicio1, horaFin1])
+                else:
+                    raise ValueError("El primer intervalo de horario es inválido.")
+            elif horaInicio1 != "-" or horaFin1 != "-":
+                raise ValueError("El primer intervalo está incompleto.")
+
+            if horaInicio2 != "-" and horaFin2 != "-":
+                if validarRangoHorario(horaInicio2, horaFin2):
+                    if intervalos:
+                        if _horaEnMinutos(horaInicio2) < _horaEnMinutos(horaFin1):
+                            raise ValueError("Los intervalos de horario se superponen o están desordenados.")
+
+                    intervalos.append([horaInicio2, horaFin2])
+                else:
+                    raise ValueError("El segundo intervalo de horario es inválido.")
+            elif horaInicio2 != "-" or horaFin2 != "-":
+                raise ValueError("El segundo intervalo está incompleto.")
+
+            horarios[dia] = intervalos
+            posicion += 4
 
     return [
         datos[0], datos[1], datos[2], horarios,
@@ -42,6 +85,7 @@ def convertirProfesional(linea):
 
 
 # Convierte un profesional en una línea para guardarlo en el archivo.
+# El nuevo formato utiliza 33 campos.
 def convertirLinea(profesional):
     datos = [
         profesional[0],
@@ -52,11 +96,21 @@ def convertirLinea(profesional):
     ]
 
     horarios = profesional[3]
+    diasSemana = obtenerDiasSemana()
 
     for dia in diasSemana:
-        if horarios[dia]:
-            datos.append(horarios[dia][0])
-            datos.append(horarios[dia][1])
+        intervalos = horarios[dia]
+
+        if len(intervalos) >= 1:
+            datos.append(intervalos[0][0])
+            datos.append(intervalos[0][1])
+        else:
+            datos.append("-")
+            datos.append("-")
+
+        if len(intervalos) >= 2:
+            datos.append(intervalos[1][0])
+            datos.append(intervalos[1][1])
         else:
             datos.append("-")
             datos.append("-")
@@ -64,26 +118,33 @@ def convertirLinea(profesional):
     return ";".join(datos) + "\n"
 
 
-# Busca un profesional por legajo leyendo el archivo secuencialmente.
+# Busca recursivamente un profesional leyendo el archivo.
+def _buscarProfesionalRecursivo(archivo, legajo):
+    linea = archivo.readline()
+
+    if linea == "":
+        return None
+
+    profesional = convertirProfesional(linea)
+
+    if profesional[0] == str(legajo):
+        return profesional
+
+    return _buscarProfesionalRecursivo(archivo, legajo)
+
+
+# Busca un profesional por legajo.
 def buscarProfesionalPorLegajo(legajo):
     profesionalEncontrado = None
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_PROFESIONALES, "rt")
-        linea = archivo.readline()
-
-        while linea != "" and profesionalEncontrado is None:
-            profesional = convertirProfesional(linea)
-
-            if profesional[0] == str(legajo):
-                profesionalEncontrado = profesional
-            else:
-                linea = archivo.readline()
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
+        profesionalEncontrado = _buscarProfesionalRecursivo(archivo, legajo)
 
     except FileNotFoundError:
         print("Todavía no existe el archivo de profesionales.")
-    except (OSError, ValueError) as mensaje:
+    except (OSError, ValueError, RecursionError) as mensaje:
         print("No se pudo leer el archivo de profesionales:", mensaje)
     finally:
         if archivo is not None:
@@ -98,7 +159,7 @@ def existeProfesionalPorEspecialidad(especialidad):
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_PROFESIONALES, "rt")
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "" and not existe:
@@ -110,7 +171,7 @@ def existeProfesionalPorEspecialidad(especialidad):
             linea = archivo.readline()
 
     except FileNotFoundError:
-        print("Todavía no existe el archivo de profesionales.")
+        existe = False
     except (OSError, ValueError) as mensaje:
         print("No se pudo leer el archivo de profesionales:", mensaje)
     finally:
@@ -142,16 +203,68 @@ def validarRangoHorario(horaInicio, horaFin):
     rangoValido = False
 
     if validarHora(horaInicio) and validarHora(horaFin):
-        partesInicio = horaInicio.split(":")
-        partesFin = horaFin.split(":")
-
-        minutosInicio = int(partesInicio[0]) * 60 + int(partesInicio[1])
-        minutosFin = int(partesFin[0]) * 60 + int(partesFin[1])
+        minutosInicio = _horaEnMinutos(horaInicio)
+        minutosFin = _horaEnMinutos(horaFin)
 
         if minutosInicio < minutosFin:
             rangoValido = True
 
     return rangoValido
+
+
+# Convierte HH:MM a minutos desde la medianoche.
+def _horaEnMinutos(hora):
+    partes = hora.split(":")
+    return int(partes[0]) * 60 + int(partes[1])
+
+
+# Solicita los intervalos de atención de un día.
+# Devuelve None si el usuario cancela, [] si no atiende.
+def pedirHorarioDia(dia):
+    print("\nConfiguración del " + dia)
+    print("Ingrese 0 si desea cancelar la carga de horarios.")
+
+    atiende = input("¿El profesional atiende ese día? Ingrese s o n: ").lower()
+
+    while atiende not in ["s", "n", "0"]:
+        print("Opción incorrecta.")
+        atiende = input("Ingrese s, n o 0 para cancelar: ").lower()
+
+    if atiende == "0":
+        return None
+
+    if atiende == "n":
+        return []
+
+    horaInicio = input("Ingrese el comienzo del primer horario (HH:MM): ")
+    horaFin = input("Ingrese el fin del primer horario (HH:MM): ")
+
+    while not validarRangoHorario(horaInicio, horaFin):
+        print("Horario inválido.")
+        horaInicio = input("Ingrese nuevamente la hora de inicio: ")
+        horaFin = input("Ingrese nuevamente la hora de fin: ")
+
+    intervalos = [[horaInicio, horaFin]]
+
+    segundoHorario = input("¿Tiene un segundo horario de atención? (s/n): ").lower()
+
+    while segundoHorario not in ["s", "n"]:
+        print("Opción incorrecta.")
+        segundoHorario = input("Ingrese s o n: ").lower()
+
+    if segundoHorario == "s":
+        horaInicio2 = input("Ingrese el comienzo del segundo horario (HH:MM): ")
+        horaFin2 = input("Ingrese el fin del segundo horario (HH:MM): ")
+
+        while (not validarRangoHorario(horaInicio2, horaFin2)
+               or _horaEnMinutos(horaInicio2) < _horaEnMinutos(horaFin)):
+            print("El segundo horario debe ser válido y comenzar cuando termine el primero.")
+            horaInicio2 = input("Ingrese nuevamente la hora de inicio: ")
+            horaFin2 = input("Ingrese nuevamente la hora de fin: ")
+
+        intervalos.append([horaInicio2, horaFin2])
+
+    return intervalos
 
 
 # Devuelve el horario de un profesional para un día concreto.
@@ -160,10 +273,19 @@ def getHorarioProfesional(legajo, dia):
     profesional = buscarProfesionalPorLegajo(legajo)
 
     if profesional is not None and dia in profesional[3]:
-        horarioDia = profesional[3][dia]
+        intervalos = profesional[3][dia]
 
-        if horarioDia:
-            horario = horarioDia[0] + " a " + horarioDia[1] + " hs"
+        if intervalos:
+            horario = ""
+
+            for posicion in range(len(intervalos)):
+                if posicion > 0:
+                    horario += " y "
+
+                horario += (
+                    intervalos[posicion][0] + " a " +
+                    intervalos[posicion][1] + " hs"
+                )
         else:
             horario = "No atiende"
 
@@ -171,13 +293,12 @@ def getHorarioProfesional(legajo, dia):
 
 
 # Comprueba si un profesional tiene turnos asignados.
-# Lee turnos.txt de a una línea, sin cargar todos los turnos.
 def tieneTurnos(legajo):
     tieneTurnosAsignados = False
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_TURNOS, "rt")
+        archivo = open(ARCHIVO_TURNOS, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "" and not tieneTurnosAsignados:
@@ -199,6 +320,29 @@ def tieneTurnos(legajo):
     return tieneTurnosAsignados
 
 
+# Muestra los intervalos de atención de un profesional.
+def mostrarHorarios(horarios):
+    diasSemana = obtenerDiasSemana()
+
+    for dia in diasSemana:
+        if horarios[dia]:
+            print(dia + ": ", end="")
+
+            for posicion in range(len(horarios[dia])):
+                if posicion > 0:
+                    print(" y ", end="")
+
+                print(
+                    horarios[dia][posicion][0] + " a " +
+                    horarios[dia][posicion][1] + " hs",
+                    end=""
+                )
+
+            print()
+        else:
+            print(dia + ": No atiende")
+
+
 # Muestra los profesionales leyendo el archivo registro por registro.
 def mostrarProfesionales():
     archivo = None
@@ -207,7 +351,7 @@ def mostrarProfesionales():
     print("Los profesionales disponibles son:")
 
     try:
-        archivo = open(ARCHIVO_PROFESIONALES, "rt")
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "":
@@ -219,16 +363,10 @@ def mostrarProfesionales():
             print("Especialidad: " + profesional[2])
             print("Duración de cada turno: " + str(profesional[4]) + " minutos")
             print("Cantidad de sobreturnos: " + str(profesional[5]))
-            print("Horario:")
-
-            for dia in diasSemana:
-                if profesional[3][dia]:
-                    print(dia + ": " + profesional[3][dia][0] +
-                          " a " + profesional[3][dia][1] + " hs")
-                else:
-                    print(dia + ": No atiende")
-
+            print("Horarios:")
+            mostrarHorarios(profesional[3])
             print()
+
             linea = archivo.readline()
 
         if not hayProfesionales:
@@ -246,13 +384,14 @@ def mostrarProfesionales():
 # Muestra los profesionales que atienden el día actual.
 def mostrarProfesionalesDelDia():
     archivo = None
+    diasSemana = obtenerDiasSemana()
     diaActual = diasSemana[datetime.now().weekday()]
     hayProfesionales = False
 
     print("Los profesionales que atienden hoy (" + diaActual + ") son:")
 
     try:
-        archivo = open(ARCHIVO_PROFESIONALES, "rt")
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "":
@@ -265,6 +404,8 @@ def mostrarProfesionalesDelDia():
                 print("Especialidad: " + profesional[2])
                 print("Duración de cada turno: " +
                       str(profesional[4]) + " minutos")
+                print("Horarios:")
+                print(getHorarioProfesional(profesional[0], diaActual))
                 print()
 
             linea = archivo.readline()
@@ -297,17 +438,10 @@ def mostrarProfesionalPorLegajo():
         print("Cantidad de sobreturnos: " +
               str(profesionalEncontrado[5]))
         print("Horarios:")
-
-        for dia in diasSemana:
-            if profesionalEncontrado[3][dia]:
-                print(dia + ": " + profesionalEncontrado[3][dia][0] +
-                      " a " + profesionalEncontrado[3][dia][1] + " hs")
-            else:
-                print(dia + ": No atiende")
+        mostrarHorarios(profesionalEncontrado[3])
 
 
 # Reescribe el archivo auxiliarmente para modificar o eliminar un registro.
-# No mantiene una colección de profesionales en memoria.
 def _reescribirProfesionales(legajo, profesionalNuevo=None):
     archivoOriginal = None
     archivoAuxiliar = None
@@ -315,15 +449,15 @@ def _reescribirProfesionales(legajo, profesionalNuevo=None):
     operacionCorrecta = False
 
     try:
-        archivoOriginal = open(ARCHIVO_PROFESIONALES, "rt")
-        archivoAuxiliar = open(ARCHIVO_AUXILIAR, "wt")
+        archivoOriginal = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
+        archivoAuxiliar = open(ARCHIVO_AUXILIAR, "wt", encoding="utf-8")
 
         linea = archivoOriginal.readline()
 
         while linea != "":
             profesional = convertirProfesional(linea)
 
-            if profesional[0] == str(legajo):
+            if profesional[0] == str(legajo) and not encontrado:
                 encontrado = True
 
                 if profesionalNuevo is not None:
@@ -359,16 +493,15 @@ def _reescribirProfesionales(legajo, profesionalNuevo=None):
 
 
 # Actualiza una especialidad en todos los profesionales que la tengan asignada.
-# Reescribe el archivo secuencialmente mediante un archivo auxiliar.
 def actualizarEspecialidadProfesionales(nombreActual, nombreNuevo):
     archivoOriginal = None
     archivoAuxiliar = None
-    encontrado = False
     correcto = False
 
     try:
-        archivoOriginal = open(ARCHIVO_PROFESIONALES, "rt")
-        archivoAuxiliar = open(ARCHIVO_AUXILIAR, "wt")
+        archivoOriginal = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
+        archivoAuxiliar = open(ARCHIVO_AUXILIAR, "wt", encoding="utf-8")
+
         linea = archivoOriginal.readline()
 
         while linea != "":
@@ -376,7 +509,6 @@ def actualizarEspecialidadProfesionales(nombreActual, nombreNuevo):
 
             if profesional[2].lower() == nombreActual.lower():
                 profesional[2] = nombreNuevo
-                encontrado = True
                 archivoAuxiliar.write(convertirLinea(profesional))
             else:
                 archivoAuxiliar.write(linea)
@@ -388,12 +520,8 @@ def actualizarEspecialidadProfesionales(nombreActual, nombreNuevo):
         archivoAuxiliar.close()
         archivoAuxiliar = None
 
-        if encontrado:
-            os.remove(ARCHIVO_PROFESIONALES)
-            os.rename(ARCHIVO_AUXILIAR, ARCHIVO_PROFESIONALES)
-        else:
-            os.remove(ARCHIVO_AUXILIAR)
-
+        os.remove(ARCHIVO_PROFESIONALES)
+        os.rename(ARCHIVO_AUXILIAR, ARCHIVO_PROFESIONALES)
         correcto = True
 
     except FileNotFoundError:
@@ -455,8 +583,10 @@ def modificarHorario():
         return
 
     horarios = profesionalEncontrado[3]
+    diasSemana = obtenerDiasSemana()
 
     print("Días disponibles:")
+
     for dia in diasSemana:
         print(dia)
 
@@ -467,28 +597,17 @@ def modificarHorario():
         dia = input("Ingrese nuevamente el día: ").lower()
 
     print("Horario actual: " + getHorarioProfesional(legajo, dia))
+    print("Ingrese 0 si desea cancelar la modificación.")
 
-    atiende = input("¿El profesional atiende ese día? Ingrese s o n: ").lower()
+    nuevoHorario = pedirHorarioDia(dia)
 
-    while atiende != "s" and atiende != "n":
-        print("Opción incorrecta.")
-        atiende = input("Ingrese s o n: ").lower()
-
-    if atiende == "s":
-        horaInicio = input("Ingrese nuevo horario de comienzo de atención: ")
-        horaFin = input("Ingrese nuevo horario de fin de atención: ")
-
-        while not validarRangoHorario(horaInicio, horaFin):
-            print("Horario inválido.")
-            horaInicio = input("Ingrese nuevamente la hora de inicio: ")
-            horaFin = input("Ingrese nuevamente la hora de fin: ")
-
-        horarios[dia] = [horaInicio, horaFin]
+    if nuevoHorario is None:
+        print("Modificación cancelada.")
     else:
-        horarios[dia] = []
+        horarios[dia] = nuevoHorario
 
-    if _reescribirProfesionales(legajo, profesionalEncontrado):
-        print("Horario modificado correctamente.")
+        if _reescribirProfesionales(legajo, profesionalEncontrado):
+            print("Horario modificado correctamente.")
 
 
 # Modifica los datos generales de un profesional.
@@ -502,16 +621,21 @@ def editarProfesionales():
         return
 
     print("Nombre actual: " + profesionalEncontrado[1])
-    nombre = input("Ingrese nuevo nombre o presione enter para mantenerlo: ")
+    nombre = input("Ingrese nuevo nombre o presione enter para mantenerlo: ").strip()
+
+    while nombre != "" and not validarTexto(nombre):
+        print("El nombre no puede estar vacío ni contener punto y coma.")
+        nombre = input("Ingrese nuevamente el nombre: ").strip()
 
     if nombre == "":
         nombre = profesionalEncontrado[1]
 
     print("Especialidad actual: " + profesionalEncontrado[2])
     Especialidades.listarEspecialidades(especialidades)
+
     especialidad = input(
         "Ingrese nueva especialidad o presione enter para mantener la actual: "
-    )
+    ).strip()
 
     if especialidad == "":
         especialidad = profesionalEncontrado[2]
@@ -519,15 +643,17 @@ def editarProfesionales():
         while not Especialidades.especialidadRegistrada(
                 especialidades, especialidad):
             print("La especialidad ingresada no está registrada.")
-            especialidad = input("Ingrese de nuevo la especialidad: ")
+            especialidad = input("Ingrese de nuevo la especialidad: ").strip()
 
-        for nombreEspecialidad in especialidades:
-            if nombreEspecialidad.lower() == especialidad.lower():
-                especialidad = nombreEspecialidad
-                break
+        posicion = Especialidades.buscarPosicionEspecialidad(
+            especialidades, especialidad
+        )
+
+        especialidad = especialidades[posicion]
 
     print("Duración actual de los turnos: " +
           str(profesionalEncontrado[4]) + " minutos")
+
     duracionTurno = input(
         "Ingrese la nueva duración o presione enter para mantenerla: "
     )
@@ -541,9 +667,11 @@ def editarProfesionales():
         while not duracionTurno.isdigit() or int(duracionTurno) <= 0:
             print("La duración debe ser un número mayor que cero.")
             duracionTurno = input("Ingrese nuevamente la duración en minutos: ")
+
         duracionTurno = int(duracionTurno)
 
     print("Sobreturnos actuales: " + str(profesionalEncontrado[5]))
+
     cantidadSobreturnos = input(
         "Ingrese la nueva cantidad de sobreturnos o presione enter para mantenerla: "
     )
@@ -554,6 +682,7 @@ def editarProfesionales():
         while not cantidadSobreturnos.isdigit():
             print("Ingrese un número válido.")
             cantidadSobreturnos = input("Ingrese nuevamente la cantidad: ")
+
         cantidadSobreturnos = int(cantidadSobreturnos)
 
     profesionalEncontrado[1] = nombre
@@ -565,31 +694,41 @@ def editarProfesionales():
         print("Profesional modificado correctamente.")
 
 
-# Registra un profesional nuevo. Se solicita una sola cantidad de sobreturnos.
+# Registra un profesional nuevo.
 def agregarProfesionales():
     especialidades = Especialidades.cargarEspecialidades()
+
     if not especialidades:
         print("No se pueden añadir profesionales porque no hay especialidades registradas.")
         return
 
-    legajo = input("Ingrese legajo del profesional para agregar: ")
+    legajo = input("Ingrese legajo del profesional para agregar: ").strip()
+
+    while not validarTexto(legajo):
+        print("El legajo no puede estar vacío ni contener punto y coma.")
+        legajo = input("Ingrese nuevamente el legajo: ").strip()
 
     if buscarProfesionalPorLegajo(legajo) is not None:
         print("Ya existe un profesional con ese legajo.")
         return
 
-    nombre = input("Ingrese nombre del profesional: ")
+    nombre = input("Ingrese nombre del profesional: ").strip()
+
+    while not validarTexto(nombre):
+        print("El nombre no puede estar vacío ni contener punto y coma.")
+        nombre = input("Ingrese nuevamente el nombre: ").strip()
+
     Especialidades.listarEspecialidades(especialidades)
-    especialidad = input("Ingrese especialidad del profesional: ")
+    especialidad = input("Ingrese especialidad del profesional: ").strip()
 
     while not Especialidades.especialidadRegistrada(especialidades, especialidad):
         print("La especialidad ingresada no está registrada.")
-        especialidad = input("Ingrese de nuevo la especialidad: ")
+        especialidad = input("Ingrese de nuevo la especialidad: ").strip()
 
-    for nombreEspecialidad in especialidades:
-        if nombreEspecialidad.lower() == especialidad.lower():
-            especialidad = nombreEspecialidad
-            break
+    posicion = Especialidades.buscarPosicionEspecialidad(
+        especialidades, especialidad
+    )
+    especialidad = especialidades[posicion]
 
     duracionTurno = input("Ingrese la duración de cada turno en minutos: ")
 
@@ -599,26 +738,16 @@ def agregarProfesionales():
 
     duracionTurno = int(duracionTurno)
     horarios = {}
+    diasSemana = obtenerDiasSemana()
 
     for dia in diasSemana:
-        atiende = input("¿El profesional atiende el " + dia + "? Ingrese s o n: ").lower()
+        nuevoHorario = pedirHorarioDia(dia)
 
-        while atiende != "s" and atiende != "n":
-            print("Opción incorrecta.")
-            atiende = input("Ingrese s o n: ").lower()
+        if nuevoHorario is None:
+            print("Carga del profesional cancelada.")
+            return
 
-        if atiende == "s":
-            horaInicio = input("Ingrese horario de comienzo con formato HH:MM: ")
-            horaFin = input("Ingrese horario de fin con formato HH:MM: ")
-
-            while not validarRangoHorario(horaInicio, horaFin):
-                print("Horario inválido.")
-                horaInicio = input("Ingrese nuevamente la hora de inicio: ")
-                horaFin = input("Ingrese nuevamente la hora de fin: ")
-
-            horarios[dia] = [horaInicio, horaFin]
-        else:
-            horarios[dia] = []
+        horarios[dia] = nuevoHorario
 
     cantidadSobreturnos = input("Ingrese la cantidad de sobreturnos permitidos: ")
 
@@ -634,7 +763,7 @@ def agregarProfesionales():
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_PROFESIONALES, "at")
+        archivo = open(ARCHIVO_PROFESIONALES, "at", encoding="utf-8")
         archivo.write(convertirLinea(profesional))
         print("Profesional agregado correctamente.")
     except OSError as mensaje:
@@ -656,20 +785,14 @@ def quitarProfesionales():
         print("Profesional eliminado correctamente.")
 
 
-# Convierte HH:MM a minutos desde la medianoche.
-def _horaEnMinutos(hora):
-    partes = hora.split(":")
-    return int(partes[0]) * 60 + int(partes[1])
-
-
 # Comprueba si una fecha/hora está ocupada por el profesional o por el paciente.
-# turnoExcluir es una tupla/lista [dni, legajo, fecha, hora] al reprogramar.
+# turnoExcluir se utiliza al reprogramar un turno.
 def _turnoOcupado(legajo, dni, fecha, hora, turnoExcluir=None):
     ocupado = False
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_TURNOS, "rt")
+        archivo = open(ARCHIVO_TURNOS, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "" and not ocupado:
@@ -685,7 +808,7 @@ def _turnoOcupado(legajo, dni, fecha, hora, turnoExcluir=None):
                 )
 
                 if not esTurnoExcluido:
-                    if (datos[1] == str(legajo) or datos[0] == str(dni)):
+                    if datos[1] == str(legajo) or datos[0] == str(dni):
                         if datos[2] == fecha and datos[3] == hora:
                             ocupado = True
 
@@ -710,7 +833,7 @@ def buscarPrimerProfesionalConTurnoLibre(especialidad, dia, fecha, hora,
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_PROFESIONALES, "rt")
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
         linea = archivo.readline()
         minutosHora = _horaEnMinutos(hora)
 
@@ -718,26 +841,29 @@ def buscarPrimerProfesionalConTurnoLibre(especialidad, dia, fecha, hora,
             profesional = convertirProfesional(linea)
 
             if profesional[2].lower() == especialidad.lower():
-                horarios = profesional[3]
+                intervalos = profesional[3][dia]
+                duracion = profesional[4]
+                horarioValido = False
 
-                if dia in horarios and horarios[dia]:
-                    minutosInicio = _horaEnMinutos(horarios[dia][0])
-                    minutosFin = _horaEnMinutos(horarios[dia][1])
-                    duracion = profesional[4]
-                    horarioValido = False
+                for intervalo in intervalos:
+                    minutosInicio = _horaEnMinutos(intervalo[0])
+                    minutosFin = _horaEnMinutos(intervalo[1])
 
                     if (minutosInicio <= minutosHora and
                             minutosHora + duracion <= minutosFin and
                             (minutosHora - minutosInicio) % duracion == 0):
                         horarioValido = True
 
+                if intervalos:
+                    minutosFin = _horaEnMinutos(intervalos[-1][1])
+
                     for numero in range(profesional[5]):
                         if minutosHora == minutosFin + numero * duracion:
                             horarioValido = True
 
-                    if horarioValido and not _turnoOcupado(
-                            profesional[0], dni, fecha, hora, turnoExcluir):
-                        profesionalDisponible = profesional
+                if horarioValido and not _turnoOcupado(
+                        profesional[0], dni, fecha, hora, turnoExcluir):
+                    profesionalDisponible = profesional
 
             linea = archivo.readline()
 
@@ -753,15 +879,20 @@ def buscarPrimerProfesionalConTurnoLibre(especialidad, dia, fecha, hora,
 
 
 # Busca el primer turno libre desde hoy, incluyendo los sobreturnos.
+# La búsqueda se limita a los próximos 365 días.
 # Devuelve (profesional, fecha, hora, esSobreturno) o None.
 def buscarPrimerTurnoLibre(especialidad, dni, turnoExcluir=None):
     fechaActual = datetime.now().date()
     fechaHoy = fechaActual
     horaActual = datetime.now().hour * 60 + datetime.now().minute
+    diasBuscados = 0
+    resultado = None
 
-    while True:
+    while diasBuscados < 365 and resultado is None:
+        diasSemana = obtenerDiasSemana()
         diaSemana = diasSemana[fechaActual.weekday()]
         fecha = fechaActual.strftime("%d/%m/%Y")
+
         profesionalDisponible = None
         horaDisponible = None
         sobreTurnoDisponible = False
@@ -769,39 +900,32 @@ def buscarPrimerTurnoLibre(especialidad, dni, turnoExcluir=None):
         archivo = None
 
         try:
-            archivo = open(ARCHIVO_PROFESIONALES, "rt")
+            archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
             linea = archivo.readline()
 
             while linea != "":
                 profesional = convertirProfesional(linea)
 
                 if profesional[2].lower() == especialidad.lower():
-                    horarioDia = profesional[3][diaSemana]
+                    intervalos = profesional[3][diaSemana]
+                    duracion = profesional[4]
 
-                    if horarioDia:
-                        minutosInicio = _horaEnMinutos(horarioDia[0])
-                        minutosFin = _horaEnMinutos(horarioDia[1])
-                        duracion = profesional[4]
-
-                        # Primero se recorren los horarios habituales.
+                    for intervalo in intervalos:
+                        minutosInicio = _horaEnMinutos(intervalo[0])
+                        minutosFin = _horaEnMinutos(intervalo[1])
                         minutos = minutosInicio
 
                         while minutos + duracion <= minutosFin:
-                            hora = (str(minutos // 60).zfill(2) + ":" +
-                                    str(minutos % 60).zfill(2))
+                            hora = (
+                                str(minutos // 60).zfill(2) + ":" +
+                                str(minutos % 60).zfill(2)
+                            )
 
                             esFuturo = (
                                 fechaActual > fechaHoy or minutos > horaActual
                             )
 
-                            esExcluido = (
-                                turnoExcluir is not None and
-                                turnoExcluir[2] == fecha and
-                                turnoExcluir[3] == hora
-                            )
-
-                            if (esFuturo and not esExcluido and
-                                    minutos < mejorHorario):
+                            if esFuturo and minutos < mejorHorario:
                                 if not _turnoOcupado(
                                         profesional[0], dni, fecha, hora,
                                         turnoExcluir):
@@ -812,26 +936,23 @@ def buscarPrimerTurnoLibre(especialidad, dni, turnoExcluir=None):
 
                             minutos += duracion
 
-                        # Luego se consideran los sobreturnos posteriores al cierre.
+                    if intervalos:
+                        minutosFin = _horaEnMinutos(intervalos[-1][1])
+
                         for numero in range(profesional[5]):
                             minutos = minutosFin + numero * duracion
 
                             if minutos + duracion <= 1440:
-                                hora = (str(minutos // 60).zfill(2) + ":" +
-                                        str(minutos % 60).zfill(2))
+                                hora = (
+                                    str(minutos // 60).zfill(2) + ":" +
+                                    str(minutos % 60).zfill(2)
+                                )
 
                                 esFuturo = (
                                     fechaActual > fechaHoy or minutos > horaActual
                                 )
 
-                                esExcluido = (
-                                    turnoExcluir is not None and
-                                    turnoExcluir[2] == fecha and
-                                    turnoExcluir[3] == hora
-                                )
-
-                                if (esFuturo and not esExcluido and
-                                        minutos < mejorHorario):
+                                if esFuturo and minutos < mejorHorario:
                                     if not _turnoOcupado(
                                             profesional[0], dni, fecha, hora,
                                             turnoExcluir):
@@ -853,12 +974,18 @@ def buscarPrimerTurnoLibre(especialidad, dni, turnoExcluir=None):
                 archivo.close()
 
         if profesionalDisponible is not None:
-            return (
+            resultado = (
                 profesionalDisponible, fecha, horaDisponible,
                 sobreTurnoDisponible
             )
+        else:
+            fechaActual = fechaActual + timedelta(days=1)
+            diasBuscados += 1
 
-        fechaActual = fechaActual + timedelta(days=1)
+    if resultado is None:
+        print("No se encontraron turnos disponibles dentro de los próximos 365 días.")
+
+    return resultado
 
 
 # Busca un profesional para una fecha y hora elegidas manualmente.
@@ -872,11 +999,15 @@ def buscarProfesionalParaFechaHora(especialidad, dni, dia, fecha, hora,
     )
 
 
-# Lista los turnos del día actual sin acumularlos en una lista.
+# Lista los turnos del día actual de un profesional.
 def listarTurnosDelDia():
     fecha = datetime.now().strftime("%d/%m/%Y")
     mostrarProfesionalesDelDia()
-    legajo = input("Ingrese el legajo del profesional para listar sus turnos de hoy: ")
+
+    legajo = input(
+        "Ingrese el legajo del profesional para listar sus turnos de hoy: "
+    )
+
     profesional = buscarProfesionalPorLegajo(legajo)
 
     if profesional is None:
@@ -888,7 +1019,7 @@ def listarTurnosDelDia():
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_TURNOS, "rt")
+        archivo = open(ARCHIVO_TURNOS, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "":
@@ -911,3 +1042,4 @@ def listarTurnosDelDia():
     finally:
         if archivo is not None:
             archivo.close()
+
