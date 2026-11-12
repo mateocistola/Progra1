@@ -1,3 +1,4 @@
+
 import os
 
 
@@ -9,12 +10,26 @@ def validarDni(dni):
     return (len(dni) == 7 or len(dni) == 8) and dni.isdigit()
 
 
+def pedirDni(mensaje):
+    dni = input(mensaje)
+
+    while not validarDni(dni):
+        print("DNI no válido. Debe contener 7 u 8 números.")
+        dni = input(mensaje)
+
+    return dni
+
+
+def validarTexto(texto):
+    return texto != "" and ";" not in texto and "\n" not in texto
+
+
 def buscarPacientePorDNI(dni):
     archivo = None
     pacienteEncontrado = None
 
     try:
-        archivo = open(ARCHIVO_PACIENTES, "rt")
+        archivo = open(ARCHIVO_PACIENTES, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "" and pacienteEncontrado is None:
@@ -42,33 +57,47 @@ def buscarPacientePorDNI(dni):
 
 
 def registrarPaciente():
-    dni = input("Ingrese el DNI del paciente: ")
-
-    while not validarDni(dni):
-        print("DNI no válido")
-        dni = input("Ingrese nuevamente el DNI del paciente: ")
+    dni = pedirDni("Ingrese el DNI del paciente: ")
 
     if buscarPacientePorDNI(dni) is not None:
         print("Ya existe un paciente con ese DNI")
         return
 
     nombre = input("Ingrese el nombre del paciente: ").strip()
+
+    while not validarTexto(nombre):
+        print("El nombre no puede estar vacío ni contener punto y coma.")
+        nombre = input("Ingrese nuevamente el nombre: ").strip()
+
     apellido = input("Ingrese el apellido del paciente: ").strip()
-    cobertura = input("Ingrese la cobertura del paciente (deje en blanco para Particular): ").strip()
 
-    if not nombre or not apellido:
-        print("El nombre y el apellido no pueden estar vacíos.")
-        return
+    while not validarTexto(apellido):
+        print("El apellido no puede estar vacío ni contener punto y coma.")
+        apellido = input("Ingrese nuevamente el apellido: ").strip()
 
-    cobertura = cobertura if cobertura else "Particular"
+    cobertura = input(
+        "Ingrese la cobertura del paciente (deje en blanco para Particular): "
+    ).strip()
+
+    while cobertura != "" and not validarTexto(cobertura):
+        print("La cobertura no puede contener punto y coma.")
+        cobertura = input("Ingrese nuevamente la cobertura: ").strip()
+
+    if cobertura == "":
+        cobertura = "Particular"
+
     archivo = None
 
     try:
-        archivo = open(ARCHIVO_PACIENTES, "at")
-        archivo.write(dni + ";" + nombre + ";" + apellido + ";" + cobertura + "\n")
+        archivo = open(ARCHIVO_PACIENTES, "at", encoding="utf-8")
+        archivo.write(
+            dni + ";" + nombre + ";" + apellido + ";" + cobertura + "\n"
+        )
         print("Paciente registrado correctamente")
+
     except OSError as mensaje:
         print("No se pudo guardar el paciente:", mensaje)
+
     finally:
         if archivo is not None:
             archivo.close()
@@ -79,7 +108,7 @@ def listarPacientes():
     hayPacientes = False
 
     try:
-        archivo = open(ARCHIVO_PACIENTES, "rt")
+        archivo = open(ARCHIVO_PACIENTES, "rt", encoding="utf-8")
         linea = archivo.readline()
 
         while linea != "":
@@ -97,17 +126,19 @@ def listarPacientes():
 
         if not hayPacientes:
             print("No hay pacientes registrados")
+
     except FileNotFoundError:
         print("No hay pacientes registrados")
     except OSError as mensaje:
         print("No se pudo leer el archivo de pacientes:", mensaje)
+
     finally:
         if archivo is not None:
             archivo.close()
 
 
 def mostrarPacientePorDNI():
-    dni = input("Ingrese el DNI del paciente que desea buscar: ")
+    dni = pedirDni("Ingrese el DNI del paciente que desea buscar: ")
     paciente = buscarPacientePorDNI(dni)
 
     if paciente is None:
@@ -127,8 +158,8 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
     operacionCorrecta = False
 
     try:
-        archivoOriginal = open(ARCHIVO_PACIENTES, "rt")
-        archivoAuxiliar = open(ARCHIVO_AUXILIAR, "wt")
+        archivoOriginal = open(ARCHIVO_PACIENTES, "rt", encoding="utf-8")
+        archivoAuxiliar = open(ARCHIVO_AUXILIAR, "wt", encoding="utf-8")
         linea = archivoOriginal.readline()
 
         while linea != "":
@@ -136,6 +167,7 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
 
             if len(datos) == 4 and datos[0] == dni and not encontrado:
                 encontrado = True
+
                 if pacienteNuevo is not None:
                     archivoAuxiliar.write(
                         pacienteNuevo["dni"] + ";" +
@@ -150,6 +182,7 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
 
         archivoOriginal.close()
         archivoOriginal = None
+
         archivoAuxiliar.close()
         archivoAuxiliar = None
 
@@ -163,11 +196,14 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
 
     except FileNotFoundError:
         print("No hay pacientes registrados.")
+
     except OSError as mensaje:
         print("No se pudo actualizar el archivo de pacientes:", mensaje)
+
     finally:
         if archivoOriginal is not None:
             archivoOriginal.close()
+
         if archivoAuxiliar is not None:
             archivoAuxiliar.close()
 
@@ -175,7 +211,7 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
 
 
 def eliminarPaciente():
-    dni = input("Ingrese el DNI del paciente que desea eliminar: ")
+    dni = pedirDni("Ingrese el DNI del paciente que desea eliminar: ")
 
     if buscarPacientePorDNI(dni) is None:
         print("No se encontró ningún paciente con ese DNI")
@@ -184,21 +220,43 @@ def eliminarPaciente():
 
 
 def modificarPaciente():
-    dni = input("Ingrese el DNI del paciente que desea modificar: ")
+    dni = pedirDni("Ingrese el DNI del paciente que desea modificar: ")
     paciente = buscarPacientePorDNI(dni)
 
     if paciente is None:
         print("No se encontró ningún paciente con ese DNI")
         return
 
-    nombre = input("Ingrese el nuevo nombre del paciente (deje vacío para no modificar): ").strip()
-    apellido = input("Ingrese el nuevo apellido del paciente (deje vacío para no modificar): ").strip()
-    cobertura = input("Ingrese la nueva cobertura del paciente (deje vacío para no modificar): ").strip()
+    nombre = input(
+        "Ingrese el nuevo nombre del paciente (deje vacío para no modificar): "
+    ).strip()
+
+    while nombre != "" and not validarTexto(nombre):
+        print("El nombre no puede contener punto y coma.")
+        nombre = input("Ingrese nuevamente el nombre: ").strip()
+
+    apellido = input(
+        "Ingrese el nuevo apellido del paciente (deje vacío para no modificar): "
+    ).strip()
+
+    while apellido != "" and not validarTexto(apellido):
+        print("El apellido no puede contener punto y coma.")
+        apellido = input("Ingrese nuevamente el apellido: ").strip()
+
+    cobertura = input(
+        "Ingrese la nueva cobertura del paciente (deje vacío para no modificar): "
+    ).strip()
+
+    while cobertura != "" and not validarTexto(cobertura):
+        print("La cobertura no puede contener punto y coma.")
+        cobertura = input("Ingrese nuevamente la cobertura: ").strip()
 
     if nombre:
         paciente["nombre"] = nombre
+
     if apellido:
         paciente["apellido"] = apellido
+
     if cobertura:
         paciente["cobertura"] = cobertura
 
@@ -229,13 +287,19 @@ def menu():
         match eleccion:
             case 1:
                 registrarPaciente()
+
             case 2:
                 listarPacientes()
+
             case 3:
                 mostrarPacientePorDNI()
+
             case 4:
                 modificarPaciente()
+
             case 5:
                 eliminarPaciente()
+
             case 6:
                 print("Volviendo al menú principal")
+
