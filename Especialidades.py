@@ -103,15 +103,14 @@ def modificarEspecialidad(especialidades):
 
     listarEspecialidades(especialidades)
 
-    nombreActual = input(
-        "Ingrese el nombre de la especialidad que desea cambiar: "
-    ).strip()
+    opcion = input("Ingrese el número de la especialidad que desea cambiar: ")
 
-    posicion = buscarPosicionEspecialidad(especialidades, nombreActual)
+    while (not opcion.isdigit() or int(opcion) < 1
+           or int(opcion) > len(especialidades)):
+        print("Opción incorrecta.")
+        opcion = input("Ingrese un número de la lista: ")
 
-    if posicion == -1:
-        print("No se encontró la especialidad ingresada")
-        return False
+    posicion = int(opcion) - 1
 
     nombreNuevo = input("Ingrese el nuevo nombre de la especialidad: ").strip()
 

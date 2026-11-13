@@ -2,11 +2,54 @@
 import os
 from datetime import datetime, timedelta
 import Especialidades
+import Pacientes
 
 
 ARCHIVO_PROFESIONALES = "profesionales.txt"
 ARCHIVO_TURNOS = "turnos.txt"
 ARCHIVO_AUXILIAR = "profesionales_aux.txt"
+
+
+def cargarProfesionalesIniciales():
+    """Crea profesionales de ejemplo solo si todavía no existe el archivo."""
+    try:
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
+        archivo.close()
+        return
+    except FileNotFoundError:
+        pass
+    except OSError as mensaje:
+        print("No se pudo consultar el archivo de profesionales:", mensaje)
+        return
+
+    especialidades = Especialidades.cargarEspecialidades()
+    if not especialidades:
+        print("No se cargaron profesionales: no hay especialidades disponibles.")
+        return
+
+    diasLaborales = obtenerDiasSemana()[:5]
+    horarios = {
+        dia: [["09:00", "13:00"], ["14:00", "18:00"]]
+        if dia in diasLaborales else []
+        for dia in obtenerDiasSemana()
+    }
+    profesionales = [
+        ["1", "Ana Ejemplo", especialidades[0], horarios, 30, 2],
+        ["2", "Bruno Ejemplo", especialidades[min(1, len(especialidades) - 1)], horarios, 30, 1],
+        ["3", "Carla Ejemplo", especialidades[min(2, len(especialidades) - 1)], horarios, 20, 1]
+    ]
+
+    archivo = None
+    try:
+        archivo = open(ARCHIVO_PROFESIONALES, "wt", encoding="utf-8")
+        for profesional in profesionales:
+            archivo.write(convertirLinea(profesional))
+        print("Se cargaron los profesionales iniciales de ejemplo.")
+    except OSError as mensaje:
+        print("No se pudieron guardar los profesionales iniciales:", mensaje)
+    finally:
+        if archivo is not None:
+            archivo.close()
 
 
 def obtenerDiasSemana():
@@ -541,7 +584,7 @@ def actualizarEspecialidadProfesionales(nombreActual, nombreNuevo):
 def menu():
     eleccion = 0
 
-    while eleccion != 6:
+    while eleccion != 7:
         eleccion = input(
             "Gestión de profesionales, ingrese:\n"
             "1 para agregar un profesional.\n"
@@ -549,12 +592,13 @@ def menu():
             "3 para modificar un profesional.\n"
             "4 para modificar el horario de un profesional.\n"
             "5 para buscar un profesional por legajo.\n"
-            "6 para salir al menú principal.\n"
+            "6 para listar todos los profesionales.\n"
+            "7 para salir al menú principal.\n"
         )
 
-        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 6:
+        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 7:
             print("Opción incorrecta.")
-            eleccion = input("Ingrese una opción entre 1 y 6: ")
+            eleccion = input("Ingrese una opción entre 1 y 7: ")
 
         eleccion = int(eleccion)
 
@@ -570,6 +614,8 @@ def menu():
             case 5:
                 mostrarProfesionalPorLegajo()
             case 6:
+                mostrarProfesionales()
+            case 7:
                 print("Volvemos al menú principal.")
 
 
@@ -694,7 +740,34 @@ def editarProfesionales():
         print("Profesional modificado correctamente.")
 
 
-# Registra un profesional nuevo.
+def obtenerProximoLegajo():
+    """Devuelve el mayor legajo numérico existente más uno."""
+    mayorLegajo = 0
+    archivo = None
+
+    try:
+        archivo = open(ARCHIVO_PROFESIONALES, "rt", encoding="utf-8")
+        linea = archivo.readline()
+
+        while linea != "":
+            datos = linea.rstrip("\n").split(";")
+            if len(datos) in [19, 33] and datos[0].isdigit():
+                mayorLegajo = max(mayorLegajo, int(datos[0]))
+            linea = archivo.readline()
+
+    except FileNotFoundError:
+        pass
+    except OSError as mensaje:
+        print("No se pudo determinar el próximo legajo:", mensaje)
+        return None
+    finally:
+        if archivo is not None:
+            archivo.close()
+
+    return str(mayorLegajo + 1)
+
+
+# Registra un profesional nuevo con legajo numérico consecutivo.
 def agregarProfesionales():
     especialidades = Especialidades.cargarEspecialidades()
 
@@ -702,15 +775,10 @@ def agregarProfesionales():
         print("No se pueden añadir profesionales porque no hay especialidades registradas.")
         return
 
-    legajo = input("Ingrese legajo del profesional para agregar: ").strip()
-
-    while not validarTexto(legajo):
-        print("El legajo no puede estar vacío ni contener punto y coma.")
-        legajo = input("Ingrese nuevamente el legajo: ").strip()
-
-    if buscarProfesionalPorLegajo(legajo) is not None:
-        print("Ya existe un profesional con ese legajo.")
+    legajo = obtenerProximoLegajo()
+    if legajo is None:
         return
+    print("Legajo asignado:", legajo)
 
     nombre = input("Ingrese nombre del profesional: ").strip()
 
@@ -1028,7 +1096,15 @@ def listarTurnosDelDia():
             if (len(datos) == 4 and datos[1] == legajo and
                     datos[2] == fecha):
                 hayTurnos = True
-                print("Paciente DNI: " + datos[0] + ", Hora: " + datos[3])
+                paciente = Pacientes.buscarPacientePorDNI(datos[0])
+                if paciente is None:
+                    nombrePaciente = "DNI " + datos[0]
+                else:
+                    nombrePaciente = (
+                        paciente["nombre"] + " " + paciente["apellido"] +
+                        " (DNI " + datos[0] + ")"
+                    )
+                print("Paciente: " + nombrePaciente + ", Hora: " + datos[3])
 
             linea = archivo.readline()
 

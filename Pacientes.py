@@ -6,6 +6,37 @@ ARCHIVO_PACIENTES = "pacientes.txt"
 ARCHIVO_AUXILIAR = "pacientes_aux.txt"
 
 
+def cargarPacientes():
+    """Crea pacientes de prueba."""
+    try:
+        archivo = open(ARCHIVO_PACIENTES, "rt", encoding="utf-8")
+        archivo.close()
+        return
+    except FileNotFoundError:
+        pass
+    except OSError as mensaje:
+        print("No se pudo consultar el archivo de pacientes:", mensaje)
+        return
+
+    pacientes = [
+        ["46628394", "Mateo", "Prueba", "IOMA"],
+        ["12345678", "Luis", "Prueba", "OSPE"],
+        ["00000000", "Marta", "Prueba", "OSDE"]
+    ]
+
+    archivo = None
+    try:
+        archivo = open(ARCHIVO_PACIENTES, "wt", encoding="utf-8")
+        for paciente in pacientes:
+            archivo.write(";".join(paciente) + "\n")
+        print("Se cargaron los pacientes iniciales de ejemplo.")
+    except OSError as mensaje:
+        print("No se pudieron guardar los pacientes iniciales:", mensaje)
+    finally:
+        if archivo is not None:
+            archivo.close()
+
+
 def validarDni(dni):
     return (len(dni) == 7 or len(dni) == 8) and dni.isdigit()
 
@@ -151,7 +182,7 @@ def mostrarPacientePorDNI():
         print("Cobertura: " + paciente["cobertura"])
 
 
-def _reescribirPaciente(dni, pacienteNuevo=None):
+def _reescribirPaciente(dni, pacienteNuevo):
     archivoOriginal = None
     archivoAuxiliar = None
     encontrado = False
@@ -167,14 +198,12 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
 
             if len(datos) == 4 and datos[0] == dni and not encontrado:
                 encontrado = True
-
-                if pacienteNuevo is not None:
-                    archivoAuxiliar.write(
-                        pacienteNuevo["dni"] + ";" +
-                        pacienteNuevo["nombre"] + ";" +
-                        pacienteNuevo["apellido"] + ";" +
-                        pacienteNuevo["cobertura"] + "\n"
-                    )
+                archivoAuxiliar.write(
+                    pacienteNuevo["dni"] + ";" +
+                    pacienteNuevo["nombre"] + ";" +
+                    pacienteNuevo["apellido"] + ";" +
+                    pacienteNuevo["cobertura"] + "\n"
+                )
             else:
                 archivoAuxiliar.write(linea)
 
@@ -208,15 +237,6 @@ def _reescribirPaciente(dni, pacienteNuevo=None):
             archivoAuxiliar.close()
 
     return operacionCorrecta
-
-
-def eliminarPaciente():
-    dni = pedirDni("Ingrese el DNI del paciente que desea eliminar: ")
-
-    if buscarPacientePorDNI(dni) is None:
-        print("No se encontró ningún paciente con ese DNI")
-    elif _reescribirPaciente(dni):
-        print("Paciente eliminado correctamente")
 
 
 def modificarPaciente():
@@ -267,20 +287,19 @@ def modificarPaciente():
 def menu():
     eleccion = 0
 
-    while eleccion != 6:
+    while eleccion != 5:
         eleccion = input(
             "Gestión de pacientes, ingrese: \n"
             "1 para registrar un paciente. \n"
             "2 para listar los pacientes. \n"
             "3 para buscar un paciente por DNI. \n"
             "4 para modificar un paciente. \n"
-            "5 para eliminar un paciente. \n"
-            "6 para volver al menú principal. \n"
+            "5 para volver al menú principal. \n"
         )
 
-        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 6:
+        while not eleccion.isdigit() or int(eleccion) < 1 or int(eleccion) > 5:
             print("Opción incorrecta.")
-            eleccion = input("Ingrese una opción entre 1 y 6: ")
+            eleccion = input("Ingrese una opción entre 1 y 5: ")
 
         eleccion = int(eleccion)
 
@@ -298,8 +317,5 @@ def menu():
                 modificarPaciente()
 
             case 5:
-                eliminarPaciente()
-
-            case 6:
                 print("Volviendo al menú principal")
 

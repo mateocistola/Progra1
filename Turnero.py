@@ -11,22 +11,6 @@ ARCHIVO_TURNOS = "turnos.txt"
 ARCHIVO_TURNOS_AUXILIAR = "turnos_aux.txt"
 
 
-def validarHora(hora):
-    partes = hora.split(":")
-    horaValida = False
-
-    if len(partes) == 2:
-        if len(partes[0]) == 2 and len(partes[1]) == 2:
-            if partes[0].isdigit() and partes[1].isdigit():
-                horas = int(partes[0])
-                minutos = int(partes[1])
-
-                if 0 <= horas <= 23 and 0 <= minutos <= 59:
-                    horaValida = True
-
-    return horaValida
-
-
 def obtenercantdias(mes, año):
     if mes in [1, 3, 5, 7, 8, 10, 12]:
         dias = 31
@@ -79,24 +63,38 @@ def validarFechaHoraFutura(fecha, hora):
     return fechaHoraTurno > fechaHoraActual
 
 
-# Solicita fecha y hora hasta que sean válidas y futuras.
+# Solicita fecha y hora hasta que sean válidas y futuras. Devuelve None si
+# el usuario ingresa 0 para cancelar.
 def ingresarFechaHora():
     fechaHoraValida = False
     fecha = ""
     hora = ""
 
     while not fechaHoraValida:
-        fecha = input("Ingrese la fecha con formato día/mes/año: ")
+        fecha = input(
+            "Ingrese la fecha con formato día/mes/año (0 para cancelar): "
+        )
+
+        if fecha == "0":
+            return None
 
         while not validarFecha(fecha):
             print("Fecha incorrecta.")
-            fecha = input("Ingrese de nuevo la fecha: ")
+            fecha = input("Ingrese de nuevo la fecha (0 para cancelar): ")
+            if fecha == "0":
+                return None
 
-        hora = input("Ingrese la hora con formato HH:MM: ")
+        hora = input("Ingrese la hora con formato HH:MM (0 para cancelar): ")
 
-        while not validarHora(hora):
+        if hora == "0":
+            return None
+
+        while not Profesionales.validarHora(hora):
             print("Hora incorrecta.")
-            hora = input("Ingrese nuevamente la hora: ")
+            hora = input("Ingrese nuevamente la hora (0 para cancelar): ")
+
+            if hora == "0":
+                return None
 
         if validarFechaHoraFutura(fecha, hora):
             fechaHoraValida = True
@@ -113,12 +111,7 @@ def obtenerDiaSemana(fecha):
     año = int(partesFecha[2])
 
     fechaTurno = datetime(año, mes, dia)
-    dias = [
-        "lunes", "martes", "miércoles", "jueves",
-        "viernes", "sábado", "domingo"
-    ]
-
-    return dias[fechaTurno.weekday()]
+    return Profesionales.obtenerDiasSemana()[fechaTurno.weekday()]
 
 
 # Determina si el horario elegido corresponde a un sobreturno.
@@ -138,29 +131,6 @@ def esSobreturno(profesional, dia, hora):
             sobreturno = True
 
     return sobreturno
-
-
-# Lee turnos.txt de a una línea para saber si hay registros.
-def hayTurnosRegistrados():
-    hayTurnos = False
-    archivo = None
-
-    try:
-        archivo = open(ARCHIVO_TURNOS, "rt", encoding="utf-8")
-        linea = archivo.readline()
-
-        if linea != "":
-            hayTurnos = True
-
-    except FileNotFoundError:
-        hayTurnos = False
-    except OSError as mensaje:
-        print("No se pudo consultar el archivo de turnos:", mensaje)
-    finally:
-        if archivo is not None:
-            archivo.close()
-
-    return hayTurnos
 
 
 # Agrega un turno al final del archivo.
@@ -296,6 +266,32 @@ def pedirDni(mensaje):
     return dni
 
 
+# Muestra un turno con los datos disponibles en los archivos relacionados.
+def mostrarDetalleTurno(turno, numero=None):
+    paciente = Pacientes.buscarPacientePorDNI(turno[0])
+    profesional = Profesionales.buscarProfesionalPorLegajo(turno[1])
+
+    if numero is not None:
+        print("Turno", numero)
+
+    if paciente is None:
+        print("Paciente DNI: " + turno[0])
+    else:
+        print("Paciente: " + paciente["nombre"] + " " + paciente["apellido"])
+        print("DNI: " + turno[0])
+
+    if profesional is None:
+        print("Profesional legajo: " + turno[1])
+    else:
+        print("Profesional: " + profesional[1])
+        print("Legajo: " + turno[1])
+        print("Especialidad: " + profesional[2])
+
+    print("Fecha: " + turno[2])
+    print("Hora: " + turno[3])
+    print()
+
+
 # Da un turno al paciente.
 def darTurno():
     especialidades = Especialidades.cargarEspecialidades()
@@ -335,6 +331,15 @@ def darTurno():
         dni = pedirDni("Ingrese nuevamente el DNI del paciente: ")
         pacienteEncontrado = Pacientes.buscarPacientePorDNI(dni)
 
+    print("\nDatos del paciente:")
+    print("DNI:", pacienteEncontrado["dni"])
+    print(
+        "Nombre:",
+        pacienteEncontrado["nombre"],
+        pacienteEncontrado["apellido"]
+    )
+    print("Cobertura:", pacienteEncontrado["cobertura"])
+
     resultado = Profesionales.buscarPrimerTurnoLibre(especialidad, dni)
 
     profesionalEncontrado = None
@@ -363,7 +368,11 @@ def darTurno():
         turnoValido = False
 
         while not turnoValido:
-            fecha, hora = ingresarFechaHora()
+            fechaHora = ingresarFechaHora()
+            if fechaHora is None:
+                print("Carga del turno cancelada.")
+                return
+            fecha, hora = fechaHora
             diaSemana = obtenerDiaSemana(fecha)
 
             profesionalEncontrado = Profesionales.buscarProfesionalParaFechaHora(
@@ -415,11 +424,7 @@ def reprogramarTurno():
     print("Estos son los turnos del paciente:\n")
 
     for posicion in range(len(turnosPaciente)):
-        print("Turno", posicion + 1)
-        print("Legajo del profesional: " + turnosPaciente[posicion][1])
-        print("Fecha: " + turnosPaciente[posicion][2])
-        print("Hora: " + turnosPaciente[posicion][3])
-        print()
+        mostrarDetalleTurno(turnosPaciente[posicion], posicion + 1)
 
     opcion = input("Ingrese el número del turno que desea reprogramar: ")
 
@@ -524,7 +529,11 @@ def reprogramarTurno():
     nuevoTurnoValido = False
 
     while not nuevoTurnoValido:
-        fechaNueva, horaNueva = ingresarFechaHora()
+        fechaHora = ingresarFechaHora()
+        if fechaHora is None:
+            print("Reprogramación cancelada. El turno original se mantiene.")
+            return
+        fechaNueva, horaNueva = fechaHora
         diaSemana = obtenerDiaSemana(fechaNueva)
 
         profesionalNuevo = Profesionales.buscarProfesionalParaFechaHora(
@@ -564,11 +573,7 @@ def cancelarTurno():
     print("Estos son los turnos del paciente con DNI: " + dniPaciente + "\n")
 
     for posicion in range(len(turnosPaciente)):
-        print("Turno", posicion + 1)
-        print("Legajo del profesional: " + turnosPaciente[posicion][1])
-        print("Fecha: " + turnosPaciente[posicion][2])
-        print("Hora: " + turnosPaciente[posicion][3])
-        print()
+        mostrarDetalleTurno(turnosPaciente[posicion], posicion + 1)
 
     opcion = input("Ingrese el número del turno que desea cancelar: ")
 
@@ -597,11 +602,7 @@ def listarTodosLosTurnos():
 
             if len(datos) == 4:
                 hayTurnos = True
-                print("DNI del paciente: " + datos[0])
-                print("Legajo del profesional: " + datos[1])
-                print("Fecha: " + datos[2])
-                print("Hora: " + datos[3])
-                print()
+                mostrarDetalleTurno(datos)
 
             linea = archivo.readline()
 
@@ -642,9 +643,5 @@ def listarTurnosDePaciente():
         )
 
         for posicion in range(len(turnosPaciente)):
-            print("Turno", posicion + 1)
-            print("Legajo del profesional: " + turnosPaciente[posicion][1])
-            print("Fecha: " + turnosPaciente[posicion][2])
-            print("Hora: " + turnosPaciente[posicion][3])
-            print()
+            mostrarDetalleTurno(turnosPaciente[posicion], posicion + 1)
 

@@ -55,9 +55,12 @@ def menuPrincipal():
 def main():
     # Cada módulo administra su propia persistencia:
     # especialidades.json y los archivos TXT secuenciales.
-    # La primera ejecución crea las especialidades iniciales si hace falta.
+    # Los archivos iniciales se crean solo si todavía no existen.
     Especialidades.cargarEspecialidades()
+    Profesionales.cargarProfesionalesIniciales()
+    Pacientes.cargarPacientes()
     menuPrincipal()
 
 
-main()
+if __name__ == "__main__":
+    main()
